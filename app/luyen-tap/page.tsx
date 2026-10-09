@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Layers, Shuffle, RotateCcw, Camera, ChevronRight } from "lucide-react";
+import { Layers, Shuffle, RotateCcw, Camera, ChevronRight, Languages } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { Bar, Btn, IconCircle, SectionTitle, Sticker } from "@/components/ui";
 import { useLabels } from "@/lib/useLabels";
@@ -86,6 +86,15 @@ export default function PracticeHub() {
           </span>
         </Link>
       </div>
+
+      <Link href="/dich" className="tile t-pur" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <IconCircle icon={Languages} size={48} bg="var(--surface)" fg="var(--pur-txt)" />
+        <span className="col col--tight grow">
+          <span className="bb">Dịch ký hiệu · thử nghiệm</span>
+          <span className="sm">Ký liên tục, app chuyển thành chữ và đọc to cho người nghe</span>
+        </span>
+        <ChevronRight size={20} aria-hidden />
+      </Link>
 
       <SectionTitle>Từ yếu cần luyện</SectionTitle>
       {weak.length === 0 ? (
