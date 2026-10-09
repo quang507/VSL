@@ -130,7 +130,7 @@ function Inner() {
             </Btn>
           ) : (
             <Btn icon={done ? RotateCcw : Camera} onClick={onStart} disabled={busy || !!cameraError}>
-              {phase === "loading" ? "Đang mở camera…" : phase === "countdown" ? `Chuẩn bị… ${count}` : phase === "recording" ? "Đang ghi…" : done ? "Thử lại" : "Bắt đầu ký"}
+              {cameraError ? "Chưa mở được camera" : phase === "loading" ? "Đang mở camera…" : phase === "countdown" ? `Chuẩn bị… ${count}` : phase === "recording" ? "Đang ghi…" : done ? "Thử lại" : "Bắt đầu ký"}
             </Btn>
           )}
           <div className="row">

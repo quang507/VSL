@@ -117,9 +117,14 @@ function WordInner() {
           Luyện với camera
         </Btn>
       ) : (
-        <p className="sm" style={{ margin: 0 }}>
-          Từ này chưa chấm được bằng camera. Hiện app chấm được 100 từ trong mục Lộ trình.
-        </p>
+        <>
+          <Btn href={`/tu-dien/luyen?w=${encodeURIComponent(entry.w)}`} level="tertiary" icon={Camera}>
+            Tập theo mẫu với camera
+          </Btn>
+          <p className="sm" style={{ margin: 0 }}>
+            Từ này chưa chấm điểm được. Camera chỉ làm gương để bạn tự so với video.
+          </p>
+        </>
       )}
 
       {related.length > 0 && (
