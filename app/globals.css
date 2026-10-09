@@ -416,3 +416,11 @@ input { font: inherit; }
 /* Màn chào: lưới 4 video ký hiệu thật */
 .onb-vids { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (min-width: 768px) { .onb-vids { grid-template-columns: repeat(4, 1fr); } }
+
+/* Từ điển: bảng chữ cái để duyệt */
+.letters { display: flex; flex-wrap: wrap; gap: 6px; }
+.letters button {
+  min-width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--txt);
+}
+.letters button[aria-pressed="true"] { background: var(--txt); border-color: var(--txt); color: #fff; }
