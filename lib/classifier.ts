@@ -23,6 +23,13 @@ export async function loadClassifier(): Promise<void> {
   ]);
   model = m;
   labels = await res.json();
+  // Khởi động: lần predict đầu trên WebGL mất vài giây (biên dịch shader).
+  // Chạy trước 1 lần với input rỗng để lúc người dùng ký xong có kết quả ngay.
+  const zero = tf.zeros([1, SEQ_LEN, FEATURES_PER_FRAME]);
+  const warm = m.predict(zero) as tf.Tensor;
+  await warm.data();
+  zero.dispose();
+  warm.dispose();
 }
 
 export function getLabels(): string[] {

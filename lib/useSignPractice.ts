@@ -62,6 +62,12 @@ export function useSignPractice() {
 
         const loop = () => {
           const v = videoRef.current;
+          // Thẻ <video> có thể được mount SAU khi camera mở (vd. bước "Xem mẫu"
+          // chưa hiện khung camera) → gắn lại luồng mỗi khi thẻ mới xuất hiện.
+          if (v && stream && v.srcObject !== stream) {
+            v.srcObject = stream;
+            v.play().catch(() => {});
+          }
           if (v && v.readyState >= 2) {
             if (canvas && canvas.width !== v.videoWidth && v.videoWidth) {
               canvas.width = v.videoWidth;
