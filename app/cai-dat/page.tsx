@@ -85,7 +85,7 @@ export default function Settings() {
       <div className="row" style={{ gap: 8, alignItems: "flex-start" }}>
         <Info size={18} color="var(--txt3)" aria-hidden style={{ flex: "none", marginTop: 2 }} />
         <span className="sm" style={{ fontSize: 12 }}>
-          VSLV 1.0 · Nhận diện bằng MediaPipe + TensorFlow.js. Video mẫu: ViSignLanguage-Video (PTIT AI Challenge), CC-BY-4.0.
+          VSLV 1.0 · Nhận diện bằng MediaPipe + TensorFlow.js. Video mẫu từ đơn: ViSignLanguage-Video (PTIT AI Challenge), CC-BY-4.0. Dữ liệu câu giao tiếp: dự án Look & Tell (khooinguyeen/Vietnamese-Sign-Language-Translation), Apache-2.0.
         </span>
       </div>
 

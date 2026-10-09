@@ -8,7 +8,7 @@ Chạy (trong .eval/venv):
     python training/eval/eval_and_train.py --data .eval --model public/models/vsl --out .eval/new_model
 """
 import argparse, json, os, re
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+# TF 2.15 đã dùng Keras 2 sẵn (không cần TF_USE_LEGACY_KERAS)
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
@@ -139,18 +139,31 @@ def main():
     seqs = np.split(z["data"], np.cumsum(z["lens"])[:-1]); y = z["y"]
     labels = json.load(open(os.path.join(a.data, "labels.json"), encoding="utf-8"))
     app_labels = json.load(open(os.path.join(os.path.dirname(a.model.rstrip("/\\")), "..", "labels.json"), encoding="utf-8"))
-    assert labels == app_labels, "Thứ tự nhãn khác labels.json của app!"
+    import unicodedata
+    nfc = lambda t: unicodedata.normalize("NFC", t)
+    app_idx = {nfc(l): i for i, l in enumerate(app_labels)}
+    # metadata.csv bị lỗi mã hoá ("ChÉn", "Nhçn") → labels.json của app ghi nhầm thành "Chén"/"Nhện";
+    # thư mục video ghi đúng "Chân"/"Nhìn". Cùng một lớp, chỉ khác tên.
+    for right, wrong in (("Chân", "Chén"), ("Nhìn", "Nhện")):
+        if wrong in app_idx and right not in app_idx: app_idx[right] = app_idx[wrong]
+    missing = [l for l in labels if nfc(l) not in app_idx]
+    assert not missing, f"Nhãn không có trong app: {missing}"
+    remap = np.array([app_idx[nfc(l)] for l in labels])
+    y = remap[y]; labels = app_labels   # dùng đúng thứ tự chỉ số của model đang chạy trong app
+    names = z["names"]; priv = np.array(["private_test" in str(n) for n in names])
     idx = np.arange(len(y))
+    # Tái hiện đúng cách notebook chia: trên TẤT CẢ mẫu (train + private_test ghép tên)
     tr, va = train_test_split(idx, test_size=0.15, random_state=42, stratify=y)
-    print(f"{len(y)} mẫu · train {len(tr)} · kiểm tra {len(va)} · {len(labels)} nhãn")
-    val_seqs = [seqs[i] for i in va]; yv = y[va]
+    va_clean = va[~priv[va]]          # mẫu kiểm tra có nhãn sạch (thư mục train) — model cũ chưa thấy
+    tr_clean = tr[~priv[tr]]          # model mới chỉ học từ nhãn sạch
+    print(f"{len(y)} mẫu ({priv.sum()} private_test ghép tên) · kiểm tra sạch {len(va_clean)} · train sạch {len(tr_clean)} · {len(labels)} nhãn")
+    val_seqs = [seqs[i] for i in va_clean]; yv = y[va_clean]
 
-    report = {"n_val": int(len(va))}
+    report = {"n_val_clean": int(len(va_clean)), "n_private_named": int(priv.sum())}
     old = load_tfjs(a.model)
     report["model_cu"] = evaluate(old, val_seqs, yv, "MODEL ĐANG DÙNG TRONG APP")
 
-    # model mới: tăng cường dữ liệu; early stopping trên 10% tách từ train (không chạm tập kiểm tra)
-    tr2, inner = train_test_split(tr, test_size=0.1, random_state=7, stratify=y[tr])
+    tr2, inner = train_test_split(tr_clean, test_size=0.1, random_state=7, stratify=y[tr_clean])
     Xin = np.stack([resample(pad_static(seqs[i], 0.1)) for i in inner]); yin = y[inner]
     tf.keras.utils.set_random_seed(0)
     new = build(len(labels))
@@ -161,10 +174,21 @@ def main():
         acc = float((new.predict(Xin, verbose=0).argmax(1) == yin).mean())
         if acc > best_acc: best_acc, best, wait = acc, new.get_weights(), 0
         else: wait += 1
-        if ep % 10 == 0: print(f"  epoch {ep:3d} · inner val {acc:.3f} (tốt nhất {best_acc:.3f})")
+        if ep % 10 == 0: print(f"  epoch {ep:3d} · inner val {acc:.3f} (tốt nhất {best_acc:.3f})", flush=True)
         if wait >= 25: break
     new.set_weights(best)
-    report["model_moi"] = evaluate(new, val_seqs, yv, "MODEL MỚI (tăng cường dữ liệu)")
+    report["model_moi"] = evaluate(new, val_seqs, yv, "MODEL MỚI (chỉ nhãn sạch + tăng cường)")
+
+    # Nhãn ghép theo tên của private_test có đúng không? Model sạch chưa từng thấy các video này.
+    pi = idx[priv]
+    if len(pi):
+        Xp = np.stack([resample(seqs[i]) for i in pi])
+        pp = new.predict(Xp, verbose=0, batch_size=256)
+        agree = float((pp.argmax(1) == y[pi]).mean())
+        agree_hi = float(((pp.argmax(1) == y[pi]) & (pp.max(1) > 0.8)).sum() / max(1, (pp.max(1) > 0.8).sum()))
+        report["private_test_khop_nhan_ghep_ten"] = {"tat_ca": agree, "khi_model_chac_>80%": agree_hi, "ngau_nhien": 1 / len(labels)}
+        print()
+        print(f"private_test: model sạch đồng ý với nhãn ghép-theo-tên {agree:.1%} (khi chắc >80%: {agree_hi:.1%}); đoán bừa = {1/len(labels):.1%}")
     export_tfjs(new, a.out)
     json.dump(report, open(os.path.join(a.out, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print("\nĐã xuất model mới TF.js →", a.out)

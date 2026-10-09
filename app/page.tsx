@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Target, RotateCcw, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Zap, Target, RotateCcw, ChevronRight, CheckCircle2, MessageCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { Bar, Btn, IconCircle, Pill, SectionTitle, Sticker } from "@/components/ui";
 import { buildLessons } from "@/lib/lessons";
@@ -152,6 +152,17 @@ export default function Home() {
           );
         })}
       </div>
+      <Link href="/cau" className="tile t-pur" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <span className="icon-circle" style={{ width: 56, height: 56, background: "var(--surface)", borderRadius: 18 }}>
+          <MessageCircle size={26} className="tone-txt" aria-hidden />
+        </span>
+        <span className="col col--tight grow">
+          <span className="sm tone-txt">Chặng mở rộng</span>
+          <span className="bb">Câu giao tiếp · 60 câu</span>
+          <span className="sm">Hỏi đường, đi khám, mua sắm…</span>
+        </span>
+        <ChevronRight size={22} aria-hidden />
+      </Link>
       <BottomNav />
     </main>
   );

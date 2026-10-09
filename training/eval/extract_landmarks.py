@@ -39,10 +39,39 @@ def sample_idx(total, k):
     return set(np.linspace(0, total - 1, k).round().astype(int))
 
 
+_LM = None
+
+
+def _init(task):
+    global _LM
+    _LM = vision.HandLandmarker.create_from_options(vision.HandLandmarkerOptions(
+        base_options=mp_tasks.BaseOptions(model_asset_path=task),
+        running_mode=vision.RunningMode.IMAGE, num_hands=NUM_HANDS, min_hand_detection_confidence=0.5))
+
+
+def _extract(job):
+    i_job, p = job
+    cap = cv2.VideoCapture(p); total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    want = sample_idx(total, SAMPLE_FRAMES); frames = []; i = 0
+    while True:
+        ok, fr = cap.read()
+        if not ok: break
+        if want is None or i in want:
+            img = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB)))
+            res = _LM.detect(img); hl = []
+            for lms, hd in zip(res.hand_landmarks, res.handedness):
+                hl.append({"label": hd[0].category_name, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)})
+            if hl: frames.append(build_frame(hl))
+        i += 1
+    cap.release()
+    return i_job, (np.array(frames, dtype=np.float32) if frames else None)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--zip", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 4))
     a = ap.parse_args()
     vid_dir = os.path.join(a.out, "videos")
     if not os.path.isdir(vid_dir):
@@ -50,37 +79,35 @@ def main():
         with zipfile.ZipFile(a.zip) as z: z.extractall(vid_dir)
     task = os.path.join(a.out, "hand_landmarker.task")
     if not os.path.exists(task): urllib.request.urlretrieve(TASK_URL, task)
-    lm = vision.HandLandmarker.create_from_options(vision.HandLandmarkerOptions(
-        base_options=mp_tasks.BaseOptions(model_asset_path=task),
-        running_mode=vision.RunningMode.IMAGE, num_hands=NUM_HANDS, min_hand_detection_confidence=0.5))
 
+    # Giống notebook: nhãn của video train = thư mục; video private_test TRÙNG TÊN với video train
+    # bị notebook gán nhãn theo tên file (stem) → tái hiện lại để kiểm tra nhãn đó đúng hay sai.
+    base = os.path.join(vid_dir, "dataset")
+    stem2lab = {}
     samples = []
-    for root, _, files in os.walk(vid_dir):
-        for fn in files:
+    for lab in os.listdir(os.path.join(base, "train")):
+        for fn in os.listdir(os.path.join(base, "train", lab)):
             if fn.lower().endswith(".mp4"):
-                p = os.path.join(root, fn)
-                samples.append((p.replace("\\", "/"), unicodedata.normalize("NFC", os.path.basename(root))))
+                samples.append((os.path.join(base, "train", lab, fn).replace("\\", "/"), unicodedata.normalize("NFC", lab)))
+                stem2lab[os.path.splitext(fn)[0]] = unicodedata.normalize("NFC", lab)
+    for fn in os.listdir(os.path.join(base, "private_test")):
+        st = os.path.splitext(fn)[0]
+        if fn.lower().endswith(".mp4") and st in stem2lab:
+            samples.append((os.path.join(base, "private_test", fn).replace("\\", "/"), stem2lab[st]))
     samples = sorted(samples)  # giống notebook: thứ tự cố định
     labels = sorted({l for _, l in samples}); l2i = {l: i for i, l in enumerate(labels)}
     print(len(samples), "video,", len(labels), "nhãn")
 
+    from multiprocessing import Pool
+    results = [None] * len(samples)
+    with Pool(a.workers, initializer=_init, initargs=(task,)) as pool:
+        for k, (j, fr) in enumerate(pool.imap_unordered(_extract, list(enumerate(p for p, _ in samples)), chunksize=4)):
+            results[j] = fr
+            if k % 200 == 0: print(f"{k}/{len(samples)}", flush=True)
     seqs, ys, names = [], [], []
-    for p, lab in tqdm(samples):
-        cap = cv2.VideoCapture(p); total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-        want = sample_idx(total, SAMPLE_FRAMES); frames = []; i = 0
-        while True:
-            ok, fr = cap.read()
-            if not ok: break
-            if want is None or i in want:
-                img = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB)))
-                res = lm.detect(img); hl = []
-                for lms, hd in zip(res.hand_landmarks, res.handedness):
-                    hl.append({"label": hd[0].category_name, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)})
-                if hl: frames.append(build_frame(hl))
-            i += 1
-        cap.release()
-        if frames:
-            seqs.append(np.array(frames, dtype=np.float32)); ys.append(l2i[lab]); names.append(p)
+    for (p, lab), fr in zip(samples, results):
+        if fr is not None:
+            seqs.append(fr); ys.append(l2i[lab]); names.append(p)
 
     lens = np.array([len(s) for s in seqs])
     np.savez_compressed(os.path.join(a.out, "landmarks_raw.npz"),

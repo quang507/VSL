@@ -2,12 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getHandLandmarker, detectHands } from "./handLandmarker";
-import {
-  loadClassifier,
-  predict,
-  isReady,
-  type Prediction,
-} from "./classifier";
+import { loadModel, predictTopK, type Prediction } from "./classifier";
+import { MODEL_URL, LABELS_URL } from "./constants";
 import { buildFrameFeatures, resampleSequence, type HandResult } from "./landmarks";
 import { drawHands } from "./draw";
 
@@ -38,7 +34,8 @@ export function computeHint(hands: HandResult[]): Hint {
   return "ok";
 }
 
-export function useSignPractice() {
+/** modelUrl/labelsUrl mặc định = model 100 từ đơn; truyền model khác cho "Câu giao tiếp" */
+export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -74,13 +71,15 @@ export function useSignPractice() {
 
         const hl = await getHandLandmarker();
         // Model có thể chưa tồn tại (chưa train) -> KHÔNG được chặn UI
+        let ok = false;
         try {
-          await loadClassifier();
+          await loadModel(modelUrl, labelsUrl);
+          ok = true;
         } catch {
           /* chưa có model: vẫn chạy camera + khung xương */
         }
         if (cancelled) return;
-        setModelReady(isReady());
+        setModelReady(ok);
 
         const loop = () => {
           // Lấy canvas mỗi frame: canvas cũng có thể mount sau khi camera mở
@@ -150,17 +149,20 @@ export function useSignPractice() {
             recordingRef.current = false;
             const frames = framesRef.current;
             setPhase("result");
-            if (!isReady() || frames.length < MIN_FRAMES) {
+            if (frames.length < MIN_FRAMES) {
               resolve(null);
               return;
             }
-            const seq = resampleSequence(frames);
-            resolve(await predict(seq));
+            try {
+              resolve((await predictTopK(modelUrl, resampleSequence(frames), 1))[0]);
+            } catch {
+              resolve(null); // model chưa sẵn sàng
+            }
           }, RECORD_MS);
         }
       }, 1000);
     });
-  }, []);
+  }, [modelUrl]);
 
   return {
     videoRef,
