@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Camera, Route, Vibrate, MapPin, Check, ShieldCheck } from "lucide-react";
+import { ChevronLeft, MapPin, Check, ShieldCheck } from "lucide-react";
 import { Bar, Btn, IconBtn, IconCircle } from "@/components/ui";
+import LoopVideo from "@/components/LoopVideo";
 import { REGIONS, saveProfile, type Region } from "@/lib/profile";
 import { setDailyGoal } from "@/lib/progress";
 
@@ -30,28 +31,43 @@ export default function Onboarding() {
 
   if (step === 0)
     return (
-      <main className="app app--center" style={{ gap: 18 }}>
+      <main className="app" style={{ gap: 20 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/logo.png" alt="VSLV — Learn. Sign. Connect." style={{ width: 150, marginTop: 8 }} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/presenter_wave.png" alt="" style={{ width: 260, height: 260, objectFit: "contain" }} />
-        <h1 className="h1">Học ngôn ngữ ký hiệu Việt Nam</h1>
-        <div className="card" style={{ width: "100%", textAlign: "left" }}>
-          {[
-            [Camera, "Camera AI chấm điểm ngay trên máy", "var(--brand-soft)", "var(--acc)"],
-            [Route, "Lộ trình theo chủ đề, 100 ký hiệu", "var(--grn-soft)", "var(--grn-txt)"],
-            [Vibrate, "Báo đúng/sai bằng rung và màu, không cần âm thanh", "var(--yel-soft)", "var(--yel-txt)"],
-          ].map(([I, t, bg, fg]) => (
-            <div key={t as string} className="row">
-              <IconCircle icon={I as typeof Camera} size={40} bg={bg as string} fg={fg as string} />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                {t as string}
-              </span>
-            </div>
+        <img src="/img/logo.png" alt="VSLV" style={{ width: 96 }} />
+        <div className="onb-vids">
+          {["Chào", "Cảm ơn", "Xin lỗi", "Đồng ý"].map((w) => (
+            <figure key={w} style={{ margin: 0, position: "relative" }}>
+              <LoopVideo word={w} style={{ aspectRatio: "1 / 1" }} />
+              <figcaption className="pill" style={{ position: "absolute", left: 8, bottom: 8, background: "rgba(255,255,255,.92)", color: "var(--txt)" }}>
+                {w}
+              </figcaption>
+            </figure>
           ))}
         </div>
+        <h1 className="h1" style={{ fontSize: 34 }}>
+          Học ngôn ngữ ký hiệu Việt Nam <span className="mark">bằng chính đôi tay</span>
+        </h1>
+        <ol className="col" style={{ margin: 0, padding: 0, listStyle: "none", gap: 14 }}>
+          {[
+            ["Xem người thật ký mẫu", "100 từ và 60 câu giao tiếp, xem chậm được."],
+            ["Ký trước camera", "App đọc vị trí bàn tay ngay trên máy, không gửi video đi đâu."],
+            ["Biết đúng sai bằng mắt", "Viền màn hình chớp xanh hoặc đỏ, máy rung. Không cần âm thanh."],
+          ].map(([t, d], i) => (
+            <li key={t} className="row row--top" style={{ gap: 14 }}>
+              <span className="step-n" style={{ width: 36, height: 36, fontSize: 16 }} aria-hidden>
+                {i + 1}
+              </span>
+              <span className="col col--tight">
+                <span className="bb">{t}</span>
+                <span className="bm">{d}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
         <div className="grow" />
-        <Btn onClick={() => setStep(1)}>Bắt đầu</Btn>
+        <div style={{ position: "sticky", bottom: "calc(12px + env(safe-area-inset-bottom))", zIndex: 5 }}>
+          <Btn onClick={() => setStep(1)}>Bắt đầu</Btn>
+        </div>
       </main>
     );
 
@@ -155,10 +171,7 @@ export default function Onboarding() {
 
       {step === 4 && (
         <>
-          <div className="row" style={{ justifyContent: "center" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/ai_hand.png" alt="" style={{ width: 200, height: 200, objectFit: "contain" }} />
-          </div>
+          <LoopVideo word="Cảm ơn" style={{ aspectRatio: "4 / 3", maxWidth: 520, width: "100%", margin: "0 auto" }} />
           <h1 className="h2">Camera giúp chấm điểm ký hiệu</h1>
           <div className="tile t-grn" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <IconCircle icon={ShieldCheck} bg="var(--surface)" fg="var(--grn-txt)" />

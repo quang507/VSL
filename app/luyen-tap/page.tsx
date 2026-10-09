@@ -2,13 +2,21 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Layers, Shuffle, RotateCcw, Camera, ChevronRight, Languages } from "lucide-react";
+import { Layers, Shuffle, Camera, ChevronRight, Languages, MessageCircle, RotateCcw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import { Bar, Btn, IconCircle, SectionTitle, Sticker } from "@/components/ui";
+import { Bar, Btn } from "@/components/ui";
 import { useLabels } from "@/lib/useLabels";
 import { useProgress } from "@/lib/useProgress";
 import { dueWords, dayStreak } from "@/lib/progress";
 import { practiceUrl } from "@/lib/nav";
+
+const MODES = [
+  { href: "/the-ghi-nho", icon: Layers, title: "Thẻ ghi nhớ", sub: "Nhìn chữ, nhớ ký hiệu, lật thẻ tự chấm", tone: "var(--yel-soft)", fg: "var(--yel-txt)" },
+  { href: "/quiz", icon: Shuffle, title: "Đố nhanh", sub: "8 từ ngẫu nhiên, camera chấm từng từ", tone: "var(--pnk-soft)", fg: "var(--pnk-txt)" },
+  { href: "/tu-dien", icon: Camera, title: "Luyện tự do", sub: "Chọn bất kỳ từ nào trong từ điển", tone: "var(--grn-soft)", fg: "var(--grn-txt)" },
+  { href: "/cau", icon: MessageCircle, title: "Câu giao tiếp", sub: "60 câu ký liền mạch", tone: "var(--pur-soft)", fg: "var(--pur-txt)" },
+  { href: "/dich", icon: Languages, title: "Dịch ký hiệu", sub: "Ký liên tục, app hiện chữ và đọc to · thử nghiệm", tone: "var(--blu-soft)", fg: "var(--blu-txt)" },
+];
 
 export default function PracticeHub() {
   const { labels } = useLabels();
@@ -21,118 +29,93 @@ export default function PracticeHub() {
       Object.entries(progress.words)
         .filter(([w, s]) => labels.includes(w) && s.attempts > 0 && s.correct / s.attempts < 0.7)
         .sort((a, b) => a[1].correct / a[1].attempts - b[1].correct / b[1].attempts)
-        .slice(0, 4),
+        .slice(0, 5),
     [progress, labels]
   );
 
   return (
-    <main className="app app--nav" style={{ gap: 22 }}>
-      <div className="col col--tight">
-        <span className="bm">Ôn đều mỗi ngày để nhớ lâu</span>
+    <main className="app app--nav">
+      <header className="col col--tight">
+        <span className="bm">Ôn đúng lúc để nhớ lâu</span>
         <h1 className="h1">Luyện tập</h1>
-      </div>
+      </header>
 
-      <section className="hero hero--deep">
-        <div className="col" style={{ flex: 1, gap: 6 }}>
-          <span className="bb" style={{ opacity: 0.85 }}>
-            Đến hạn hôm nay
-          </span>
-          <div className="row" style={{ gap: 10 }}>
-            <span className="d1" style={{ color: "#fff" }}>
-              {due.length}
-            </span>
-            <span className="h4" style={{ color: "#fff" }}>
-              từ cần
-              <br />
-              ôn lại
-            </span>
+      <div className="split">
+        {/* Ôn tập đến hạn: hiện luôn các từ, không cần đoán */}
+        <section className="card" style={{ gap: 14, padding: 20 }}>
+          <span className="eyebrow">Đến hạn hôm nay</span>
+          <div className="row" style={{ alignItems: "baseline", gap: 10 }}>
+            <span className="d3 num">{due.length}</span>
+            <span className="bb muted">{due.length ? `từ · khoảng ${Math.max(1, Math.round(due.length * 0.5))} phút` : "từ"}</span>
           </div>
-          <span className="bm" style={{ color: "rgba(255,255,255,.85)" }}>
-            {due.length ? `Khoảng ${Math.max(1, Math.round(due.length * 0.5))} phút` : "Chưa có từ nào đến hạn"}
-          </span>
-          <div style={{ marginTop: 6 }}>
-            <Btn href="/quiz?mode=review" level="tertiary" size="md" block={false} disabled={!due.length}>
-              Ôn ngay
-            </Btn>
-          </div>
-        </div>
-        <Sticker src="/img/mascot_cheer.png" size={112} />
-      </section>
-
-      <SectionTitle>Chế độ luyện</SectionTitle>
-      <div className="grid2">
-        <Link href="/the-ghi-nho" className="tile t-yel" style={{ gridRow: "span 2", justifyContent: "space-between", minHeight: 200 }}>
-          <IconCircle icon={Layers} size={48} bg="var(--surface)" fg="var(--yel-txt)" />
-          <span className="col col--tight">
-            <span className="h4">Thẻ ghi nhớ</span>
-            <span className="sm">Nhìn từ, nhớ ký hiệu, lật thẻ tự chấm</span>
-          </span>
-          <span className="bb tone-txt row" style={{ gap: 4 }}>
-            Bắt đầu <ChevronRight size={18} aria-hidden />
-          </span>
-        </Link>
-        <Link href="/quiz" className="tile t-pnk" style={{ flexDirection: "row", alignItems: "center" }}>
-          <IconCircle icon={Shuffle} size={40} bg="var(--surface)" fg="var(--pnk-txt)" />
-          <span className="col col--tight">
-            <span className="bb">Đố vui</span>
-            <span className="sm">8 từ ngẫu nhiên</span>
-          </span>
-        </Link>
-        <Link href="/tu-dien" className="tile t-grn" style={{ flexDirection: "row", alignItems: "center" }}>
-          <IconCircle icon={Camera} size={40} bg="var(--surface)" fg="var(--grn-txt)" />
-          <span className="col col--tight">
-            <span className="bb">Luyện tự do</span>
-            <span className="sm">Chọn từ bất kỳ</span>
-          </span>
-        </Link>
-      </div>
-
-      <Link href="/dich" className="tile t-pur" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <IconCircle icon={Languages} size={48} bg="var(--surface)" fg="var(--pur-txt)" />
-        <span className="col col--tight grow">
-          <span className="bb">Dịch ký hiệu · thử nghiệm</span>
-          <span className="sm">Ký liên tục, app chuyển thành chữ và đọc to cho người nghe</span>
-        </span>
-        <ChevronRight size={20} aria-hidden />
-      </Link>
-
-      <SectionTitle>Từ yếu cần luyện</SectionTitle>
-      {weak.length === 0 ? (
-        <div className="card card--row">
-          <IconCircle icon={RotateCcw} bg="var(--grn-soft)" fg="var(--grn-txt)" />
-          <span className="bm">Chưa có từ yếu. Từ nào bạn ký sai nhiều sẽ hiện ở đây.</span>
-        </div>
-      ) : (
-        <div className="card card--list">
-          {weak.map(([w, s]) => {
-            const pct = Math.round((s.correct / s.attempts) * 100);
-            return (
-              <Link key={w} href={practiceUrl(w)} className="list-row">
-                <span className="col col--tight grow">
-                  <span className="bb">{w}</span>
-                  <span className="sm">
-                    Đúng {s.correct}/{s.attempts} lần
-                  </span>
-                  <Bar pct={pct} h={6} color={pct < 40 ? "var(--red)" : "var(--yel)"} />
+          {due.length ? (
+            <div className="row wrap" style={{ gap: 6 }}>
+              {due.slice(0, 8).map((w) => (
+                <span key={w} className="pill" style={{ background: "var(--sunk)", color: "var(--txt)" }}>
+                  {w}
                 </span>
-                <span className="icon-circle" style={{ width: 44, height: 44, background: "var(--brand-soft)", color: "var(--acc)" }} aria-label="Luyện lại">
-                  <RotateCcw size={22} aria-hidden />
+              ))}
+              {due.length > 8 && <span className="pill faint">+{due.length - 8}</span>}
+            </div>
+          ) : (
+            <p className="bm" style={{ margin: 0 }}>
+              Chưa có từ nào đến hạn. Từ bạn ký đúng sẽ quay lại đây sau 8 giờ, rồi 1 ngày, 3 ngày, 1 tuần.
+            </p>
+          )}
+          <Btn href="/quiz?mode=review" disabled={!due.length} icon={RotateCcw}>
+            Ôn ngay
+          </Btn>
+        </section>
+
+        <section className="col">
+          <h2 className="h4">Chế độ luyện</h2>
+          <nav className="rows" aria-label="Chế độ luyện">
+            {MODES.map(({ href, icon: I, title, sub, tone, fg }) => (
+              <Link key={href} href={href}>
+                <span className="glyph" style={{ background: tone, color: fg }}>
+                  <I size={22} aria-hidden />
                 </span>
+                <span className="col col--tight grow" style={{ minWidth: 0 }}>
+                  <span className="bb">{title}</span>
+                  <span className="sm">{sub}</span>
+                </span>
+                <ChevronRight size={20} color="var(--txt3)" aria-hidden />
               </Link>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </nav>
+        </section>
+      </div>
 
-      <section className="tile t-org" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/target.png" alt="" style={{ width: 56, height: 56 }} />
-        <span className="col col--tight grow">
-          <span className="sm tone-txt">Kỷ lục combo</span>
-          <span className="bb">
-            {progress.bestStreak} lần đúng liên tiếp · chuỗi {dayStreak(progress)} ngày
-          </span>
-        </span>
+      <section className="col">
+        <div className="row row--between">
+          <h2 className="h4">Từ hay sai</h2>
+          <span className="sm num">Kỷ lục {progress.bestStreak} lần đúng liền · {dayStreak(progress)} ngày</span>
+        </div>
+        {weak.length === 0 ? (
+          <p className="bm" style={{ margin: 0 }}>
+            Chưa có. Từ nào bạn ký đúng dưới 70% sẽ hiện ở đây để luyện lại.
+          </p>
+        ) : (
+          <div className="rows">
+            {weak.map(([w, s]) => {
+              const pct = Math.round((s.correct / s.attempts) * 100);
+              return (
+                <Link key={w} href={practiceUrl(w)}>
+                  <span className="col col--tight grow">
+                    <span className="row row--between">
+                      <span className="bb">{w}</span>
+                      <span className="sm num">
+                        {s.correct}/{s.attempts} đúng
+                      </span>
+                    </span>
+                    <Bar pct={pct} h={6} color={pct < 40 ? "var(--red)" : "var(--yel)"} />
+                  </span>
+                  <ChevronRight size={20} color="var(--txt3)" aria-hidden />
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
       <BottomNav />
     </main>

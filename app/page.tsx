@@ -3,20 +3,31 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Target, RotateCcw, ChevronRight, CheckCircle2, MessageCircle } from "lucide-react";
+import { Check, ChevronRight, MessageCircle, Play } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import { Bar, Btn, IconCircle, Pill, SectionTitle, Sticker } from "@/components/ui";
+import LoopVideo from "@/components/LoopVideo";
+import { Btn } from "@/components/ui";
 import { buildLessons } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { useProgress } from "@/lib/useProgress";
 import { useProfile } from "@/lib/profile";
 import { countLearned, dayStreak, dueWords, isLearned, todayCount } from "@/lib/progress";
 import { lessonUrl, practiceUrl } from "@/lib/nav";
-import { TONE, lessonIcon } from "@/lib/theme";
 
 function greeting() {
   const h = new Date().getHours();
   return h < 11 ? "Chào buổi sáng" : h < 14 ? "Chào buổi trưa" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+}
+
+/** Mỗi ô = một ký hiệu trong bài; ô xanh = đã thuộc. */
+function Dots({ words, learned, dark }: { words: string[]; learned: (w: string) => boolean; dark?: boolean }) {
+  return (
+    <span className={`dots ${dark ? "dots--dark" : ""}`} aria-hidden>
+      {words.map((w) => (
+        <i key={w} className={learned(w) ? "on" : ""} />
+      ))}
+    </span>
+  );
 }
 
 export default function Home() {
@@ -34,135 +45,125 @@ export default function Home() {
   const today = todayCount(progress);
   const goal = progress.dailyGoal;
   const due = useMemo(() => dueWords(progress, labels), [progress, labels]);
+  const learned = (w: string) => isLearned(progress, w);
 
   // Bài đang học = bài đầu tiên chưa thuộc hết
   const current = lessons.find((l) => countLearned(progress, l.words) < l.words.length) ?? lessons[0];
-  const nextWord = current?.words.find((w) => !isLearned(progress, w)) ?? current?.words[0];
+  const nextWord = current?.words.find((w) => !learned(w)) ?? current?.words[0];
   const curDone = current ? countLearned(progress, current.words) : 0;
+  const curIdx = current ? lessons.indexOf(current) : 0;
 
   return (
     <main className="app app--nav">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="cloud" src="/img/cloud.png" alt="" />
-      <div className="row row--between" style={{ position: "relative" }}>
-        <div className="col col--tight">
-          <span className="bm">
-            {greeting()}
-            {profile.name ? `, ${profile.name}` : ""}
-          </span>
-          <h1 className="h1">Lộ trình học</h1>
-        </div>
-        <Link href="/ho-so" className="pill" style={{ background: "var(--surface)", boxShadow: "var(--shadow-soft)", minHeight: 44, padding: "8px 14px" }} aria-label={`Chuỗi ${streak} ngày`}>
-          <Zap size={20} color="var(--org)" fill="var(--org)" aria-hidden />
-          <span className="bb">{streak} ngày</span>
-        </Link>
-      </div>
+      <header className="col col--tight">
+        <span className="bm">
+          {greeting()}
+          {profile.name ? `, ${profile.name}` : ""}
+        </span>
+        <h1 className="h1">Lộ trình học</h1>
+      </header>
 
-      {/* Học tiếp */}
+      {/* Ba con số quan trọng trong một dải, thay cho 3 thẻ rời */}
+      <section className="stats" aria-label="Tóm tắt hôm nay">
+        <Link href="/ho-so">
+          <span className="stat-v">
+            {Math.min(today, goal)}
+            <span className="faint">/{goal}</span>
+          </span>
+          <span className="stat-l">{today >= goal ? "Đạt mục tiêu" : "Hôm nay"}</span>
+        </Link>
+        <Link href="/ho-so">
+          <span className="stat-v">{streak}</span>
+          <span className="stat-l">Ngày liên tiếp</span>
+        </Link>
+        <Link href={due.length ? "/quiz?mode=review" : "/luyen-tap"}>
+          <span className="stat-v" style={{ color: due.length ? "var(--acc)" : undefined }}>
+            {due.length}
+          </span>
+          <span className="stat-l">Cần ôn</span>
+        </Link>
+      </section>
+
+      {/* Học tiếp: chính video của ký hiệu sắp học là ảnh minh hoạ */}
       {current && nextWord && (
-        <section className="hero hero--deep">
-          <div className="col" style={{ flex: 1, gap: 8 }}>
-            <span className="bb" style={{ opacity: 0.85 }}>
-              Học tiếp · {current.title}
-            </span>
-            <span className="h2" style={{ color: "#fff" }}>
-              {nextWord}
-            </span>
-            <span className="bm" style={{ color: "rgba(255,255,255,.85)" }}>
-              {curDone}/{current.words.length} ký hiệu đã thuộc
-            </span>
-            <Bar pct={(curDone / current.words.length) * 100} color="var(--yel)" track="rgba(255,255,255,.2)" />
-            <div style={{ marginTop: 6 }}>
-              <Btn href={practiceUrl(nextWord, current.id)} level="tertiary" size="md" block={false}>
-                Học ngay
-              </Btn>
+        <section className="next" aria-label="Học tiếp">
+          <div className="next-vid">
+            <LoopVideo word={nextWord} style={{ position: "absolute", inset: 0, borderRadius: 0, background: "transparent" }} />
+            <div className="next-word">
+              <span className="eyebrow" style={{ color: "rgba(255,255,255,.75)" }}>
+                Ký hiệu tiếp theo
+              </span>
+              <div className="d4" style={{ color: "#fff" }}>
+                {nextWord}
+              </div>
             </div>
           </div>
-          <Sticker src="/img/mascot_cheer.png" size={108} rot={-6} />
+          <div className="next-body">
+            <div className="col col--tight">
+              <span className="bb">
+                Chặng {curIdx + 1} · {current.title}
+              </span>
+              <span className="sm num" style={{ color: "rgba(255,255,255,.75)" }}>
+                Đã thuộc {curDone}/{current.words.length} ký hiệu
+              </span>
+            </div>
+            <Dots words={current.words} learned={learned} dark />
+            <Btn href={practiceUrl(nextWord, current.id)} level="tertiary" icon={Play}>
+              Học “{nextWord}”
+            </Btn>
+          </div>
         </section>
       )}
 
-      {/* Mục tiêu hôm nay */}
-      <section className="card">
-        <div className="row">
-          <IconCircle icon={Target} bg="var(--grn-soft)" fg="var(--grn-txt)" />
-          <div className="col col--tight grow">
-            <span className="bb">Mục tiêu hôm nay</span>
-            <span className="sm">{today >= goal ? "Đã đạt mục tiêu, giỏi lắm!" : `Còn ${goal - today} lần ký đúng nữa`}</span>
-          </div>
-          <span className="h4">
-            {Math.min(today, goal)}/{goal}
-          </span>
-        </div>
-        <Bar pct={(today / goal) * 100} color="var(--grn)" />
-      </section>
-
-      {due.length > 0 && (
-        <Link href="/quiz?mode=review" className="tile t-blu" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <IconCircle icon={RotateCcw} bg="var(--surface)" fg="var(--acc)" />
-          <div className="col col--tight grow">
-            <span className="bb">{due.length} từ đến hạn ôn</span>
-            <span className="sm">Ôn đúng lúc giúp nhớ lâu hơn</span>
-          </div>
-          <ChevronRight size={22} aria-hidden />
-        </Link>
-      )}
-
-      <SectionTitle>Các chặng</SectionTitle>
-      {loading && [0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 88, borderRadius: 24 }} />)}
+      <div className="row row--between" style={{ marginTop: 4 }}>
+        <h2 className="h4">Các chặng</h2>
+        <span className="sm num">
+          {countLearned(progress, labels)}/{labels.length} ký hiệu
+        </span>
+      </div>
+      {loading && [0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 64 }} />)}
       {!loading && labels.length === 0 && <div className="card">Chưa có dữ liệu từ (labels.json).</div>}
 
-      <div className="col">
+      <ol className="path" style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {lessons.map((l, i) => {
           const done = countLearned(progress, l.words);
-          const pct = (done / l.words.length) * 100;
           const complete = done === l.words.length;
-          const Icon = lessonIcon(l.id);
           const isCurrent = l.id === current?.id;
           return (
-            <Link
-              key={l.id}
-              href={lessonUrl(l.id)}
-              className={`card card--row`}
-              style={isCurrent ? { outline: "2px solid var(--brand)" } : undefined}
-            >
-              <span className={`icon-circle tile ${TONE[l.color]}`} style={{ width: 56, height: 56, padding: 0, borderRadius: 18 }}>
-                <Icon size={26} className="tone-txt" aria-hidden />
-              </span>
-              <div className="col col--tight grow" style={{ minWidth: 0 }}>
-                <span className="sm">Chặng {i + 1}</span>
-                <span className="bb">{l.title}</span>
-                <div className="row" style={{ gap: 8 }}>
-                  <Bar pct={pct} h={6} color={complete ? "var(--grn)" : "var(--brand)"} />
-                  <span className="sm" style={{ flex: "none" }}>
-                    {done}/{l.words.length}
+            <li key={l.id}>
+              <Link href={lessonUrl(l.id)} className={`step ${complete ? "step--done" : isCurrent ? "step--cur" : ""}`}>
+                <span className="step-n" aria-hidden>
+                  {complete ? <Check size={22} strokeWidth={3} /> : i + 1}
+                </span>
+                <span className="step-body">
+                  <span className="row" style={{ gap: 8 }}>
+                    <span className="bb" style={{ flex: 1 }}>
+                      {l.title}
+                    </span>
+                    <span className="sm num" style={{ flex: "none" }}>
+                      {done}/{l.words.length}
+                    </span>
                   </span>
-                </div>
-              </div>
-              {complete ? (
-                <CheckCircle2 size={26} color="var(--grn)" aria-label="Đã hoàn thành" />
-              ) : isCurrent ? (
-                <Pill bg="var(--brand)" fg="#fff">
-                  Đang học
-                </Pill>
-              ) : (
-                <ChevronRight size={22} color="var(--txt3)" aria-hidden />
-              )}
-            </Link>
+                  <Dots words={l.words} learned={learned} />
+                </span>
+                <ChevronRight size={20} color="var(--txt3)" aria-hidden />
+              </Link>
+            </li>
           );
         })}
-      </div>
-      <Link href="/cau" className="tile t-pur" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <span className="icon-circle" style={{ width: 56, height: 56, background: "var(--surface)", borderRadius: 18 }}>
-          <MessageCircle size={26} className="tone-txt" aria-hidden />
-        </span>
-        <span className="col col--tight grow">
-          <span className="sm tone-txt">Chặng mở rộng</span>
-          <span className="bb">Câu giao tiếp · 60 câu</span>
-          <span className="sm">Hỏi đường, đi khám, mua sắm…</span>
-        </span>
-        <ChevronRight size={22} aria-hidden />
-      </Link>
+        <li>
+          <Link href="/cau" className="step">
+            <span className="step-n" aria-hidden style={{ borderStyle: "dashed" }}>
+              <MessageCircle size={20} />
+            </span>
+            <span className="step-body">
+              <span className="bb">Câu giao tiếp</span>
+              <span className="sm">60 câu: hỏi đường, đi khám, mua sắm…</span>
+            </span>
+            <ChevronRight size={20} color="var(--txt3)" aria-hidden />
+          </Link>
+        </li>
+      </ol>
       <BottomNav />
     </main>
   );
