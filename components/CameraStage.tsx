@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject, ReactNode } from "react";
+import { useState, type RefObject, type ReactNode } from "react";
 import { Hand, ScanFace, CameraOff } from "lucide-react";
 import type { Phase } from "@/lib/useSignPractice";
 import { Pill } from "./ui";
@@ -23,9 +23,19 @@ export default function CameraStage({
   veil?: ReactNode;
   error?: boolean;
 }) {
+  // Khung theo đúng tỉ lệ camera: webcam laptop ngang 4:3, điện thoại dọc → không bị cắt mất tay
+  const [ratio, setRatio] = useState<string | undefined>();
   return (
-    <div className="cam">
-      <video ref={videoRef} playsInline muted />
+    <div className="cam" style={ratio ? { aspectRatio: ratio } : undefined}>
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget;
+          if (v.videoWidth && v.videoHeight) setRatio(`${v.videoWidth} / ${v.videoHeight}`);
+        }}
+      />
       <canvas ref={canvasRef} />
       <div className="cam-frame" aria-hidden />
       <div className="cam-chip">

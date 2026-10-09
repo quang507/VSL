@@ -57,10 +57,10 @@ export function useSignPractice() {
         if (cancelled) return;
         setModelReady(isReady());
 
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d") ?? null;
-
         const loop = () => {
+          // Lấy canvas mỗi frame: canvas cũng có thể mount sau khi camera mở
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext("2d") ?? null;
           const v = videoRef.current;
           // Thẻ <video> có thể được mount SAU khi camera mở (vd. bước "Xem mẫu"
           // chưa hiện khung camera) → gắn lại luồng mỗi khi thẻ mới xuất hiện.

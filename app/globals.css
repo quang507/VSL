@@ -273,7 +273,7 @@ input { font: inherit; }
 }
 .cam canvas { z-index: 2; }
 .cam-frame {
-  position: absolute; z-index: 3; inset: 14% 10%;
+  position: absolute; z-index: 3; inset: 8% 12%;
   border: 3px dashed rgba(255,255,255,.85); border-radius: 36px; pointer-events: none;
 }
 .cam-chip { position: absolute; z-index: 4; top: 14px; left: 14px; }
