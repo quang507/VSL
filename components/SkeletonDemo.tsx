@@ -11,13 +11,18 @@ const BONES: [number, number][] = [
 const COLORS = ["#4a8cf5", "#3fab53"];
 
 /** Phát lại một lần ký dưới dạng khung xương 2 bàn tay (thay cho video mẫu). */
-export default function SkeletonDemo({ frames, fps = 30 }: { frames: DemoFrames | null; fps?: number }) {
+export default function SkeletonDemo({ frames: raw, fps = 30 }: { frames: DemoFrames | null; fps?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     const cv = ref.current;
-    if (!cv || !frames?.length) return;
+    if (!cv || !raw?.length) return;
+    // bỏ frame chưa/không thấy tay ở đầu & cuối để mẫu hiện ngay
+    const has = (f: number[]) => f.some((v) => v !== 0);
+    const a = raw.findIndex(has);
+    const b = raw.length - 1 - [...raw].reverse().findIndex(has);
+    const frames = a < 0 ? raw : raw.slice(a, b + 1);
     const ctx = cv.getContext("2d")!;
     // khung nhìn: bao trọn mọi điểm của cả lần ký, có lề
     let minX = 1, maxX = 0, minY = 1, maxY = 0;
@@ -63,12 +68,12 @@ export default function SkeletonDemo({ frames, fps = 30 }: { frames: DemoFrames 
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [frames, fps, slow]);
+  }, [raw, fps, slow]);
 
   return (
     <div className="media" style={{ aspectRatio: "1 / 1", background: "var(--brand-deep)" }}>
       <canvas ref={ref} width={600} height={600} style={{ width: "100%", height: "100%" }} aria-label="Hoạt hình khung xương bàn tay của câu mẫu" />
-      {!frames && (
+      {!raw && (
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>Đang tải mẫu…</div>
       )}
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", justifyContent: "space-between" }}>
