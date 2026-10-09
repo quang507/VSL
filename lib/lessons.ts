@@ -98,6 +98,8 @@ const TOPICS: Topic[] = [
   },
 ];
 
+const ORDER = ["chao-hoi", "con-nguoi", "an-uong", "thoi-gian", "cam-xuc", "co-the", "di-chuyen", "hoat-dong", "y-te"];
+
 // Dựng danh sách bài học từ labels thực tế (chỉ giữ từ có trong labels).
 export function buildLessons(labels: string[]): Lesson[] {
   const set = new Set(labels);
@@ -114,6 +116,9 @@ export function buildLessons(labels: string[]): Lesson[] {
     }
     if (words.length) lessons.push({ ...t, words });
   }
+
+  // Thứ tự học: từ dễ, gần gũi trước
+  lessons.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
 
   const leftover = labels.filter((w) => !used.has(w));
   if (leftover.length) {

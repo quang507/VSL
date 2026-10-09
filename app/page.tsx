@@ -1,245 +1,158 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Zap, Target, RotateCcw, ChevronRight, CheckCircle2 } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
+import { Bar, Btn, IconCircle, Pill, SectionTitle, Sticker } from "@/components/ui";
 import { buildLessons } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { useProgress } from "@/lib/useProgress";
-import { practiceUrl, lessonUrl } from "@/lib/nav";
-import {
-  loadProgress,
-  isLearned,
-  countLearned,
-  resetProgress,
-  dayStreak,
-  todayCount,
-  levelInfo,
-  dueWords,
-  setDailyGoal,
-  setSoundOn,
-} from "@/lib/progress";
-import { BADGES, earnedBadgeIds } from "@/lib/badges";
+import { useProfile } from "@/lib/profile";
+import { countLearned, dayStreak, dueWords, isLearned, todayCount } from "@/lib/progress";
+import { lessonUrl, practiceUrl } from "@/lib/nav";
+import { TONE, lessonIcon } from "@/lib/theme";
 
-const GOAL_OPTIONS = [3, 5, 10, 15];
+function greeting() {
+  const h = new Date().getHours();
+  return h < 11 ? "Chào buổi sáng" : h < 14 ? "Chào buổi trưa" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+}
 
 export default function Home() {
+  const router = useRouter();
+  const { profile, ready } = useProfile();
   const { labels, loading } = useLabels();
-  const [progress, setProgress] = useProgress();
-  const [query, setQuery] = useState("");
+  const [progress] = useProgress();
+
+  useEffect(() => {
+    if (ready && !profile.onboarded) router.replace("/chao-mung");
+  }, [ready, profile.onboarded, router]);
 
   const lessons = useMemo(() => buildLessons(labels), [labels]);
-
-  const learnedCount = useMemo(
-    () => countLearned(progress, labels),
-    [labels, progress]
-  );
-
   const streak = dayStreak(progress);
   const today = todayCount(progress);
-  const goalPct = Math.min(100, Math.round((today / progress.dailyGoal) * 100));
-  const lvl = levelInfo(progress.score);
+  const goal = progress.dailyGoal;
   const due = useMemo(() => dueWords(progress, labels), [progress, labels]);
-  const earned = useMemo(
-    () => earnedBadgeIds(progress, learnedCount),
-    [progress, learnedCount]
-  );
 
-  const searching = query.trim().length > 0;
-  const filtered = useMemo(
-    () =>
-      labels.filter((w) =>
-        w.toLowerCase().includes(query.trim().toLowerCase())
-      ),
-    [labels, query]
-  );
+  // Bài đang học = bài đầu tiên chưa thuộc hết
+  const current = lessons.find((l) => countLearned(progress, l.words) < l.words.length) ?? lessons[0];
+  const nextWord = current?.words.find((w) => !isLearned(progress, w)) ?? current?.words[0];
+  const curDone = current ? countLearned(progress, current.words) : 0;
 
   return (
-    <main className="container">
-      <div className="topbar">
-        <span className="brand">
-          <span className="brand-emoji">🤟</span> VSL Learn
-        </span>
-        <Link href="/quiz" className="btn btn--pink">
-          🔀 Quiz ngẫu nhiên
+    <main className="app app--nav">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="cloud" src="/img/cloud.png" alt="" />
+      <div className="row row--between" style={{ position: "relative" }}>
+        <div className="col col--tight">
+          <span className="bm">
+            {greeting()}
+            {profile.name ? `, ${profile.name}` : ""}
+          </span>
+          <h1 className="h1">Lộ trình học</h1>
+        </div>
+        <Link href="/ho-so" className="pill" style={{ background: "var(--surface)", boxShadow: "var(--shadow-soft)", minHeight: 44, padding: "8px 14px" }} aria-label={`Chuỗi ${streak} ngày`}>
+          <Zap size={20} color="var(--org)" fill="var(--org)" aria-hidden />
+          <span className="bb">{streak} ngày</span>
         </Link>
       </div>
 
-      {/* Mục tiêu hôm nay */}
-      <div className="daily-card">
-        <div
-          className="goal-ring"
-          style={{ ["--pct" as string]: `${goalPct * 3.6}deg` }}
-        >
-          <div className="goal-ring-inner">
-            <div className="goal-num">{today}</div>
-            <div className="goal-of">/{progress.dailyGoal}</div>
+      {/* Học tiếp */}
+      {current && nextWord && (
+        <section className="hero hero--deep">
+          <div className="col" style={{ flex: 1, gap: 8 }}>
+            <span className="bb" style={{ opacity: 0.85 }}>
+              Học tiếp · {current.title}
+            </span>
+            <span className="h2" style={{ color: "#fff" }}>
+              {nextWord}
+            </span>
+            <span className="bm" style={{ color: "rgba(255,255,255,.85)" }}>
+              {curDone}/{current.words.length} ký hiệu đã thuộc
+            </span>
+            <Bar pct={(curDone / current.words.length) * 100} color="var(--yel)" track="rgba(255,255,255,.2)" />
+            <div style={{ marginTop: 6 }}>
+              <Btn href={practiceUrl(nextWord, current.id)} level="tertiary" size="md" block={false}>
+                Học ngay
+              </Btn>
+            </div>
           </div>
-        </div>
-        <div className="daily-text">
-          <div className="daily-streak">🔥 {streak} ngày liên tiếp</div>
-          <div className="muted">
-            {today >= progress.dailyGoal
-              ? "🎉 Đạt mục tiêu hôm nay rồi!"
-              : `Còn ${progress.dailyGoal - today} từ nữa là đạt mục tiêu hôm nay`}
-          </div>
-          <div className="goal-pick">
-            <span className="muted">Mục tiêu/ngày:</span>
-            {GOAL_OPTIONS.map((g) => (
-              <button
-                key={g}
-                className={`goal-chip ${g === progress.dailyGoal ? "goal-chip--on" : ""}`}
-                onClick={() => setProgress(setDailyGoal(g))}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="stats">
-        <div className="stat stat--yellow">
-          <div className="stat-num">Lv.{lvl.level}</div>
-          <div className="stat-label">{progress.score} XP</div>
-          <div className="lesson-bar" style={{ marginTop: 8 }}>
-            <div className="lesson-bar-fill" style={{ width: `${lvl.pct}%` }} />
-          </div>
-        </div>
-        <div className="stat stat--green">
-          <div className="stat-num">
-            {learnedCount}/{labels.length || "?"}
-          </div>
-          <div className="stat-label">Từ đã thuộc</div>
-        </div>
-        <div className="stat stat--blue">
-          <div className="stat-num">🔥 {progress.bestStreak}</div>
-          <div className="stat-label">Combo tốt nhất</div>
-        </div>
-      </div>
-
-      {due.length > 0 && (
-        <Link href="/quiz?mode=review" className="review-cta">
-          🔁 Ôn tập {due.length} từ tới hạn — giúp nhớ lâu hơn!
-        </Link>
-      )}
-
-      <h1 className="h-title">Học ngôn ngữ ký hiệu VSL</h1>
-      <p className="h-sub">
-        Chọn một bài → xem mẫu → bật camera → ký hiệu → AI chấm đúng/sai ngay
-        trong trình duyệt.
-      </p>
-
-      <input
-        className="search"
-        placeholder="🔎 Tìm từ… (vd: cứu, bệnh viện)"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-
-      {loading && <p className="center muted">Đang tải danh sách từ…</p>}
-
-      {!loading && labels.length === 0 && (
-        <div className="card">
-          Chưa có dữ liệu từ. Chạy pipeline trong <code>training/</code> để tạo{" "}
-          <code>labels.json</code> và model.
-        </div>
-      )}
-
-      {/* Khi tìm kiếm: hiện thẳng các từ khớp */}
-      {searching ? (
-        <>
-          <p className="muted" style={{ marginBottom: 12 }}>
-            {filtered.length} kết quả cho “{query.trim()}”
-          </p>
-          <div className="word-grid">
-            {filtered.map((w) => {
-              const done = isLearned(progress, w);
-              return (
-                <Link
-                  key={w}
-                  href={practiceUrl(w)}
-                  className={`word-card ${done ? "word-card--done" : ""}`}
-                >
-                  {done && <span className="badge">✓</span>}
-                  {w}
-                </Link>
-              );
-            })}
-          </div>
-        </>
-      ) : (
-        /* Mặc định: danh sách bài học theo chủ đề */
-        <div className="lesson-grid">
-          {lessons.map((l) => {
-            const done = countLearned(progress, l.words);
-            const pct = Math.round((done / l.words.length) * 100);
-            const complete = done === l.words.length;
-            return (
-              <Link
-                key={l.id}
-                href={lessonUrl(l.id)}
-                className={`lesson-card lesson-card--${l.color}`}
-              >
-                {complete && <span className="badge">✓</span>}
-                <div className="lesson-emoji">{l.emoji}</div>
-                <div className="lesson-title">{l.title}</div>
-                <div className="lesson-meta">
-                  {done}/{l.words.length} từ đã thuộc
-                </div>
-                <div className="lesson-bar">
-                  <div className="lesson-bar-fill" style={{ width: `${pct}%` }} />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Huy hiệu */}
-      {!searching && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="section-title">🏅 Huy hiệu ({earned.size}/{BADGES.length})</h2>
-          <div className="badge-grid">
-            {BADGES.map((b) => {
-              const got = earned.has(b.id);
-              return (
-                <div
-                  key={b.id}
-                  className={`badge-item ${got ? "" : "badge-item--locked"}`}
-                  title={b.desc}
-                >
-                  <span className="badge-item-emoji">{got ? b.emoji : "🔒"}</span>
-                  <span className="badge-item-title">{b.title}</span>
-                  <span className="badge-item-desc">{b.desc}</span>
-                </div>
-              );
-            })}
-          </div>
+          <Sticker src="/img/mascot_cheer.png" size={108} rot={-6} />
         </section>
       )}
 
-      <div className="row" style={{ marginTop: 28 }}>
-        <button
-          className="btn btn--blue"
-          onClick={() => setProgress(setSoundOn(!progress.soundOn))}
-        >
-          {progress.soundOn ? "🔊 Tiếng: Bật" : "🔇 Tiếng: Tắt"}
-        </button>
-        <span className="spacer" />
-        {progress.score > 0 && (
-          <button
-            className="btn btn--yellow"
-            onClick={() => {
-              if (confirm("Xoá toàn bộ tiến độ học?")) {
-                resetProgress();
-                setProgress(loadProgress());
-              }
-            }}
-          >
-            ♻️ Reset tiến độ
-          </button>
-        )}
+      {/* Mục tiêu hôm nay */}
+      <section className="card">
+        <div className="row">
+          <IconCircle icon={Target} bg="var(--grn-soft)" fg="var(--grn-txt)" />
+          <div className="col col--tight grow">
+            <span className="bb">Mục tiêu hôm nay</span>
+            <span className="sm">{today >= goal ? "Đã đạt mục tiêu, giỏi lắm!" : `Còn ${goal - today} lần ký đúng nữa`}</span>
+          </div>
+          <span className="h4">
+            {Math.min(today, goal)}/{goal}
+          </span>
+        </div>
+        <Bar pct={(today / goal) * 100} color="var(--grn)" />
+      </section>
+
+      {due.length > 0 && (
+        <Link href="/quiz?mode=review" className="tile t-blu" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <IconCircle icon={RotateCcw} bg="var(--surface)" fg="var(--acc)" />
+          <div className="col col--tight grow">
+            <span className="bb">{due.length} từ đến hạn ôn</span>
+            <span className="sm">Ôn đúng lúc giúp nhớ lâu hơn</span>
+          </div>
+          <ChevronRight size={22} aria-hidden />
+        </Link>
+      )}
+
+      <SectionTitle>Các chặng</SectionTitle>
+      {loading && [0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 88, borderRadius: 24 }} />)}
+      {!loading && labels.length === 0 && <div className="card">Chưa có dữ liệu từ (labels.json).</div>}
+
+      <div className="col">
+        {lessons.map((l, i) => {
+          const done = countLearned(progress, l.words);
+          const pct = (done / l.words.length) * 100;
+          const complete = done === l.words.length;
+          const Icon = lessonIcon(l.id);
+          const isCurrent = l.id === current?.id;
+          return (
+            <Link
+              key={l.id}
+              href={lessonUrl(l.id)}
+              className={`card card--row`}
+              style={isCurrent ? { outline: "2px solid var(--brand)" } : undefined}
+            >
+              <span className={`icon-circle tile ${TONE[l.color]}`} style={{ width: 56, height: 56, padding: 0, borderRadius: 18 }}>
+                <Icon size={26} className="tone-txt" aria-hidden />
+              </span>
+              <div className="col col--tight grow" style={{ minWidth: 0 }}>
+                <span className="sm">Chặng {i + 1}</span>
+                <span className="bb">{l.title}</span>
+                <div className="row" style={{ gap: 8 }}>
+                  <Bar pct={pct} h={6} color={complete ? "var(--grn)" : "var(--brand)"} />
+                  <span className="sm" style={{ flex: "none" }}>
+                    {done}/{l.words.length}
+                  </span>
+                </div>
+              </div>
+              {complete ? (
+                <CheckCircle2 size={26} color="var(--grn)" aria-label="Đã hoàn thành" />
+              ) : isCurrent ? (
+                <Pill bg="var(--brand)" fg="#fff">
+                  Đang học
+                </Pill>
+              ) : (
+                <ChevronRight size={22} color="var(--txt3)" aria-hidden />
+              )}
+            </Link>
+          );
+        })}
       </div>
+      <BottomNav />
     </main>
   );
 }

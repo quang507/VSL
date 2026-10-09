@@ -1,4 +1,6 @@
-// Âm thanh + rung khi đúng/sai — tạo bằng WebAudio nên KHÔNG cần file nhạc.
+// Phản hồi khi đúng/sai. Người điếc dựa vào RUNG + NHÁY VIỀN (component Flash);
+// âm thanh chỉ là tuỳ chọn cho người nghe trong gia đình.
+// Âm tạo bằng WebAudio nên KHÔNG cần file nhạc.
 let ctx: AudioContext | null = null;
 
 function audio(): AudioContext | null {
@@ -36,17 +38,23 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
-export function feedbackCorrect(on: boolean) {
-  if (!on) return;
-  audio()?.resume(); // iOS cần resume sau tương tác người dùng
-  tone(660, 0, 0.12); // hai nốt đi lên: ting-ting
-  tone(880, 0.1, 0.18);
-  vibrate([0, 35, 40, 35]);
+export interface FeedbackOpts {
+  sound: boolean;
+  vibrate: boolean;
 }
 
-export function feedbackWrong(on: boolean) {
-  if (!on) return;
-  audio()?.resume();
-  tone(200, 0, 0.25, 0.12); // một nốt trầm
-  vibrate(120);
+export function signal(ok: boolean, o: FeedbackOpts) {
+  if (o.vibrate) vibrate(ok ? [0, 35, 40, 35] : [0, 120, 80, 120]);
+  if (!o.sound) return;
+  audio()?.resume(); // iOS cần resume sau tương tác người dùng
+  if (ok) {
+    tone(660, 0, 0.12);
+    tone(880, 0.1, 0.18);
+  } else {
+    tone(200, 0, 0.25, 0.12);
+  }
 }
+
+// Giữ API cũ để không vỡ chỗ khác đang gọi
+export const feedbackCorrect = (on: boolean) => signal(true, { sound: on, vibrate: on });
+export const feedbackWrong = (on: boolean) => signal(false, { sound: on, vibrate: on });

@@ -1,4 +1,4 @@
-# VSL Web — Học Ngôn Ngữ Ký Hiệu Việt Nam
+# VSLV — Học Ngôn Ngữ Ký Hiệu Việt Nam
 
 Web app học ngôn ngữ ký hiệu VSL: bật camera → ký hiệu → AI chấm đúng/sai.
 **Chạy 100% trong trình duyệt** (MediaPipe WASM + TensorFlow.js), không cần
@@ -61,3 +61,50 @@ public/
   labels.json         danh sách nhãn (do bước 4 ghi đè)
   models/vsl/         model TF.js (do bước 4 tạo)
 ```
+
+## Giao diện VSLV (nhánh `redesign-vslv`)
+
+Giao diện làm lại theo thiết kế Figma VSLV: lộ trình theo chặng, luyện camera 2 bước
+(xem mẫu → tập & chấm), đố vui, ôn tập Leitner, thẻ ghi nhớ, từ điển tìm không dấu,
+hồ sơ + thống kê + huy hiệu, cài đặt. Phản hồi đúng/sai bằng **rung + nháy viền màn hình**
+(âm thanh là tuỳ chọn cho người nghe).
+
+| Trang | Đường dẫn |
+|---|---|
+| Chào mừng (lần đầu) | `/chao-mung` |
+| Lộ trình | `/` |
+| Bài học | `/lesson?id=…` |
+| Luyện ký hiệu | `/practice?word=…` |
+| Luyện tập | `/luyen-tap` |
+| Đố vui / Ôn tập | `/quiz`, `/quiz?mode=review` |
+| Thẻ ghi nhớ | `/the-ghi-nho` |
+| Từ điển | `/tu-dien` |
+| Hồ sơ | `/ho-so` |
+| Cài đặt | `/cai-dat` |
+
+## Video mẫu
+
+`public/samples/<nhãn>.mp4` lấy từ **ViSignLanguage-Video** (PTIT AI Challenge, tác giả
+`star092304` trên Hugging Face), giấy phép **CC-BY-4.0** — phải giữ dòng ghi nguồn trong app.
+
+```bash
+pip install remotezip huggingface_hub imageio-ffmpeg
+python training/fetch_samples.py      # 1 video/nhãn, chỉ kéo đúng file cần
+python training/transcode_samples.py  # chuyển mpeg4 → H.264 cho trình duyệt/iOS
+```
+
+## Đóng gói app iOS / Android (Capacitor)
+
+Web xuất tĩnh vào `out/` (`next.config.js` → `output: "export"`), Capacitor bọc thành app.
+
+```bash
+npm run cap:sync      # build web + chép vào android/ và ios/
+npm run cap:android   # mở Android Studio → Build → Generate Signed Bundle (.aab)
+npm run cap:ios       # (cần máy Mac + Xcode) → Product → Archive
+```
+
+- Android: cần Android Studio (kèm JDK + SDK). Quyền camera đã khai báo trong `AndroidManifest.xml`.
+- iOS: cần macOS + Xcode. `NSCameraUsageDescription` đã có trong `Info.plist`.
+- Đăng store cần tài khoản nhà phát triển: Google Play (25 USD, một lần), Apple (99 USD/năm),
+  kèm trang chính sách quyền riêng tư.
+- MediaPipe đang tải WASM/model từ CDN → app cần mạng khi luyện camera lần đầu.
