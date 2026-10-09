@@ -49,7 +49,7 @@ export default function Onboarding() {
         </h1>
         <ol className="col" style={{ margin: 0, padding: 0, listStyle: "none", gap: 14 }}>
           {[
-            ["Xem người thật ký mẫu", "100 từ và 60 câu giao tiếp, xem chậm được."],
+            ["Xem mẫu rồi làm theo", "100 từ có video người thật ký, 59 câu có hoạt hình bàn tay, xem chậm được."],
             ["Ký trước camera", "App đọc vị trí bàn tay ngay trên máy, không gửi video đi đâu."],
             ["Biết đúng sai bằng mắt", "Viền màn hình chớp xanh hoặc đỏ, máy rung. Không cần âm thanh."],
           ].map(([t, d], i) => (

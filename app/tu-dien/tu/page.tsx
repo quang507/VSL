@@ -7,23 +7,26 @@ import { Btn, TopBar } from "@/components/ui";
 import { useProfile } from "@/lib/profile";
 import { useLabels } from "@/lib/useLabels";
 import { practiceUrl } from "@/lib/nav";
-import { QIPEDC_SOURCE, VARIANT_NAME, fold, preferredVariant, useQipedc, videoUrl, wordUrl } from "@/lib/qipedc";
+import { QIPEDC_SOURCE, VARIANT_NAME, fold, preferredVariant, useQipedc, variantsOf, videoUrl, wordUrl } from "@/lib/qipedc";
 import Link from "next/link";
 
 function WordInner() {
-  const w = useSearchParams().get("w") ?? "";
+  const params = useSearchParams();
+  const w = params.get("w") ?? "";
+  const [si, setSi] = useState(Number(params.get("s")) || 0);
   const { entries, loading } = useQipedc();
   const { labels } = useLabels();
   const { profile } = useProfile();
   const entry = useMemo(() => entries.find((e) => e.w === w), [entries, w]);
+  const sense = entry?.s[Math.min(si, entry.s.length - 1)];
   const [variant, setVariant] = useState<string>("");
   const [slow, setSlow] = useState(profile.slowVideo);
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (entry) setVariant(preferredVariant(entry, profile.region));
-  }, [entry, profile.region]);
+    if (sense) setVariant(preferredVariant(sense, profile.region));
+  }, [sense, profile.region]);
   useEffect(() => setFailed(false), [variant]);
   useEffect(() => {
     if (ref.current) ref.current.playbackRate = slow ? 0.5 : 1;
@@ -40,7 +43,7 @@ function WordInner() {
   }, [entries, entry, w]);
 
   if (loading) return <main className="app"><TopBar back="/tu-dien" /><div className="skeleton" style={{ height: 240 }} /></main>;
-  if (!entry)
+  if (!entry || !sense)
     return (
       <main className="app">
         <TopBar back="/tu-dien" title="Từ điển" />
@@ -48,16 +51,27 @@ function WordInner() {
       </main>
     );
 
-  const variants = ["B", "T", "N", "_"].filter((r) => entry.v[r as keyof typeof entry.v]);
-  const id = entry.v[variant as keyof typeof entry.v];
+  const variants = variantsOf(sense);
+  const id = sense.v[variant as keyof typeof sense.v];
 
   return (
     <main className="app">
       <TopBar back="/tu-dien" />
       <header className="col col--tight">
-        {entry.t && <span className="eyebrow">{entry.t}</span>}
+        {sense.t && <span className="eyebrow">{sense.t}</span>}
         <h1 className="d4">{entry.w}</h1>
       </header>
+
+      {entry.s.length > 1 && (
+        <div className="seg" role="group" aria-label="Nghĩa của từ">
+          {entry.s.map((x, i) => (
+            <button key={i} type="button" aria-pressed={i === si} onClick={() => setSi(i)}>
+              Nghĩa {i + 1}
+              {x.t ? ` · ${x.t}` : ""}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="vid" style={{ aspectRatio: "16 / 9", background: "#111", maxWidth: 720 }}>
         {id && !failed ? (
@@ -103,11 +117,11 @@ function WordInner() {
         </div>
       )}
 
-      {entry.d && (
+      {sense.d && (
         <section className="col col--tight">
           <span className="eyebrow">Nghĩa</span>
           <p className="bm" style={{ margin: 0, color: "var(--txt)", fontSize: 17 }}>
-            {entry.d}
+            {sense.d}
           </p>
         </section>
       )}
@@ -118,7 +132,7 @@ function WordInner() {
         </Btn>
       ) : (
         <>
-          <Btn href={`/tu-dien/luyen?w=${encodeURIComponent(entry.w)}`} level="tertiary" icon={Camera}>
+          <Btn href={`/tu-dien/luyen?w=${encodeURIComponent(entry.w)}${si ? `&s=${si}` : ""}`} level="tertiary" icon={Camera}>
             Tập theo mẫu với camera
           </Btn>
           <p className="sm" style={{ margin: 0 }}>

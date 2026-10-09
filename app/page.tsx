@@ -158,7 +158,7 @@ export default function Home() {
             </span>
             <span className="step-body">
               <span className="bb">Câu giao tiếp</span>
-              <span className="sm">60 câu: hỏi đường, đi khám, mua sắm…</span>
+              <span className="sm">59 câu: chào hỏi, đi khám, mua sắm…</span>
             </span>
             <ChevronRight size={20} color="var(--txt3)" aria-hidden />
           </Link>

@@ -1,5 +1,6 @@
 "use client";
 
+import { UNCLEAR_PHRASES } from "@/lib/phrases";
 import { useEffect, useState } from "react";
 import { Volume2, Maximize2, Trash2, Pause, Play, X, Info, Hand, Loader2, FlaskConical } from "lucide-react";
 import CameraStage from "@/components/CameraStage";
@@ -33,7 +34,10 @@ export default function Translate() {
   const { videoRef, canvasRef, status, handsVisible, hint, modelReady, cameraError, paused, setPaused } = useContinuousSign(
     mode === "word" ? MODEL_URL : PHRASE_MODEL,
     mode === "word" ? LABELS_URL : PHRASE_LABELS,
-    (top) => setItems((xs) => [...xs, { top, pick: 0 }])
+    (top) => {
+      const t = top.filter((p) => !UNCLEAR_PHRASES.has(p.label));
+      if (t.length) setItems((xs) => [...xs, { top: t, pick: 0 }]);
+    }
   );
 
   const text = items.map((it) => it.top[it.pick]?.label ?? "").join(" ");

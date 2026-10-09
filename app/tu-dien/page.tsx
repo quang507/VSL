@@ -31,13 +31,14 @@ function groupByLetter(words: string[]) {
 }
 
 function QRow({ e, trained }: { e: QEntry; trained: boolean }) {
-  const n = Object.keys(e.v).length;
+  const first = e.s[0];
+  const n = Object.keys(first.v).length;
   return (
     <Link href={wordUrl(e.w)}>
       <span className="col col--tight grow" style={{ minWidth: 0 }}>
         <span className="bb">{e.w}</span>
         <span className="sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {[e.t, n > 1 ? `${n} miền` : "", e.d].filter(Boolean).join(" · ")}
+          {[e.s.length > 1 ? `${e.s.length} nghĩa` : first.t, n > 1 ? `${n} miền` : "", first.d].filter(Boolean).join(" · ")}
         </span>
       </span>
       {trained && <Camera size={20} color="var(--acc)" aria-label="Chấm được bằng camera" />}

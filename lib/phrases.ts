@@ -10,6 +10,10 @@ export const PHRASE_DEMO = "/models/phrases/demo.json";
 /** Mỗi frame: 84 số = 2 tay × 21 điểm × (x, y), toạ độ ảnh 0..1; tay vắng = toàn 0 */
 export type DemoFrames = number[][];
 
+/** Câu chưa xác định được nghĩa (tên gốc không dấu "ban trong cau co the" có nhiều cách đọc):
+ *  vẫn là 1 lớp trong model, nhưng không đưa vào danh sách học và không hiện khi dịch. */
+export const UNCLEAR_PHRASES = new Set(["Bạn trông cậu có thể…"]);
+
 let labelsP: Promise<string[]> | null = null;
 let demoP: Promise<Record<string, DemoFrames>> | null = null;
 

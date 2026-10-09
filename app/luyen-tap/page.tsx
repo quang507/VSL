@@ -14,7 +14,7 @@ const MODES = [
   { href: "/the-ghi-nho", icon: Layers, title: "Thẻ ghi nhớ", sub: "Nhìn chữ, nhớ ký hiệu, lật thẻ tự chấm", tone: "var(--yel-soft)", fg: "var(--yel-txt)" },
   { href: "/quiz", icon: Shuffle, title: "Đố nhanh", sub: "8 từ ngẫu nhiên, camera chấm từng từ", tone: "var(--pnk-soft)", fg: "var(--pnk-txt)" },
   { href: "/tu-dien", icon: Camera, title: "Luyện tự do", sub: "Chọn bất kỳ từ nào trong từ điển", tone: "var(--grn-soft)", fg: "var(--grn-txt)" },
-  { href: "/cau", icon: MessageCircle, title: "Câu giao tiếp", sub: "60 câu ký liền mạch", tone: "var(--pur-soft)", fg: "var(--pur-txt)" },
+  { href: "/cau", icon: MessageCircle, title: "Câu giao tiếp", sub: "59 câu ký liền mạch", tone: "var(--pur-soft)", fg: "var(--pur-txt)" },
   { href: "/dich", icon: Languages, title: "Dịch ký hiệu", sub: "Ký liên tục, app hiện chữ và đọc to · thử nghiệm", tone: "var(--blu-soft)", fg: "var(--blu-txt)" },
 ];
 
