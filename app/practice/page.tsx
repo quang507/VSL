@@ -24,7 +24,7 @@ function PracticeInner() {
   const target = params.get("word") ?? "";
   const lessonId = params.get("lesson") ?? "";
 
-  const { videoRef, canvasRef, phase, count, handsVisible, modelReady, cameraError, start } = useSignPractice();
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice();
 
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
@@ -138,7 +138,7 @@ function PracticeInner() {
         </>
       ) : (
         <>
-          <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} error={!!cameraError} />
+          <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
 
           {cameraError && (
             <div className="tile t-red" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

@@ -37,7 +37,7 @@ function QuizInner() {
   const [graded, setGraded] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
 
-  const { videoRef, canvasRef, phase, count, handsVisible, modelReady, cameraError, start } = useSignPractice();
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice();
 
   const buildDeck = (ls: string[]) => (review ? dueWords(loadProgress(), ls) : shuffle(ls).slice(0, QUIZ_LEN));
 
@@ -177,7 +177,7 @@ function QuizInner() {
         ))}
       </div>
 
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} error={!!cameraError} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
 
       {cameraError && (
         <div className="tile t-red" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

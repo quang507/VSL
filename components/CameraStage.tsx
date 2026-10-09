@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type RefObject, type ReactNode } from "react";
-import { Hand, ScanFace, CameraOff } from "lucide-react";
-import type { Phase } from "@/lib/useSignPractice";
+import { Hand, ScanFace, CameraOff, MoveHorizontal, ZoomOut, ZoomIn } from "lucide-react";
+import type { Hint, Phase } from "@/lib/useSignPractice";
 import { Pill } from "./ui";
 
 /** Khung camera dùng chung cho Luyện tập và Đố vui: video gương + khung xương tay + đếm ngược. */
@@ -14,6 +14,7 @@ export default function CameraStage({
   handsVisible,
   veil,
   error,
+  hint = "none",
 }: {
   videoRef: RefObject<HTMLVideoElement>;
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -22,6 +23,7 @@ export default function CameraStage({
   handsVisible: number;
   veil?: ReactNode;
   error?: boolean;
+  hint?: Hint;
 }) {
   // Khung theo đúng tỉ lệ camera: webcam laptop ngang 4:3, điện thoại dọc → không bị cắt mất tay
   const [ratio, setRatio] = useState<string | undefined>();
@@ -37,17 +39,9 @@ export default function CameraStage({
         }}
       />
       <canvas ref={canvasRef} />
-      <div className="cam-frame" aria-hidden />
-      <div className="cam-chip">
-        {handsVisible > 0 ? (
-          <Pill bg="var(--grn-soft)" fg="var(--grn-txt)" icon={Hand}>
-            Thấy {handsVisible} bàn tay
-          </Pill>
-        ) : (
-          <Pill bg="rgba(255,255,255,.92)" fg="var(--txt)" icon={ScanFace}>
-            Đưa tay vào khung
-          </Pill>
-        )}
+      <div className={`cam-frame cam-frame--${hint}`} aria-hidden />
+      <div className="cam-chip" aria-live="polite">
+        <HintChip hint={hint} hands={handsVisible} />
       </div>
       {phase === "recording" && (
         <div className="cam-rec">
@@ -73,5 +67,22 @@ export default function CameraStage({
       )}
       {veil && <div className="cam-veil">{veil}</div>}
     </div>
+  );
+}
+
+const HINTS: Record<Hint, { text: string; icon: typeof Hand; bg: string; fg: string }> = {
+  none: { text: "Đưa tay vào khung", icon: ScanFace, bg: "rgba(255,255,255,.92)", fg: "var(--txt)" },
+  edge: { text: "Tay sắp ra ngoài khung", icon: MoveHorizontal, bg: "var(--yel)", fg: "var(--yel-txt)" },
+  close: { text: "Lùi ra sau một chút", icon: ZoomOut, bg: "var(--yel)", fg: "var(--yel-txt)" },
+  far: { text: "Tiến lại gần hơn", icon: ZoomIn, bg: "var(--yel)", fg: "var(--yel-txt)" },
+  ok: { text: "Tốt rồi", icon: Hand, bg: "var(--grn-soft)", fg: "var(--grn-txt)" },
+};
+
+function HintChip({ hint, hands }: { hint: Hint; hands: number }) {
+  const h = HINTS[hint];
+  return (
+    <Pill bg={h.bg} fg={h.fg} icon={h.icon}>
+      {hint === "ok" ? `${h.text} · thấy ${hands} bàn tay` : h.text}
+    </Pill>
   );
 }

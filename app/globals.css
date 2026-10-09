@@ -276,8 +276,11 @@ input { font: inherit; }
   position: absolute; z-index: 3; inset: 8% 12%;
   border: 3px dashed rgba(255,255,255,.85); border-radius: 36px; pointer-events: none;
 }
-.cam-chip { position: absolute; z-index: 4; top: 14px; left: 14px; }
-.cam-rec { position: absolute; z-index: 4; top: 14px; right: 14px; }
+.cam-frame { transition: border-color 200ms ease, box-shadow 200ms ease; }
+.cam-frame--ok { border: 4px solid var(--grn); box-shadow: 0 0 0 4px rgba(63, 171, 83, .25); }
+.cam-frame--edge, .cam-frame--close, .cam-frame--far { border: 4px dashed var(--yel); }
+.cam-chip { position: absolute; z-index: 4; top: 14px; left: 14px; right: 14px; }
+.cam-rec { position: absolute; z-index: 4; bottom: 14px; left: 14px; }
 .cam-count {
   position: absolute; z-index: 5; inset: 0; display: flex; align-items: center; justify-content: center;
   background: rgba(0,0,0,.35); color: #fff; font-family: var(--font-display); font-size: 120px; font-weight: 600;

@@ -8,12 +8,35 @@ import {
   isReady,
   type Prediction,
 } from "./classifier";
-import { buildFrameFeatures, resampleSequence } from "./landmarks";
+import { buildFrameFeatures, resampleSequence, type HandResult } from "./landmarks";
 import { drawHands } from "./draw";
 
 export type Phase = "loading" | "ready" | "countdown" | "recording" | "result";
 
 const RECORD_MS = 2500; // thời gian quay mỗi lần ký hiệu
+const MIN_FRAMES = 6; // ít hơn số frame có tay này thì coi như "không thấy tay"
+
+/** Gợi ý tư thế hiển thị trực tiếp trên khung camera */
+export type Hint = "none" | "edge" | "close" | "far" | "ok";
+
+export function computeHint(hands: HandResult[]): Hint {
+  if (!hands.length) return "none";
+  let size = 0;
+  let edge = false;
+  for (const h of hands) {
+    let minX = 1, maxX = 0, minY = 1, maxY = 0;
+    for (const p of h.points) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+    if (minX < 0.03 || maxX > 0.97 || minY < 0.03 || maxY > 0.97) edge = true;
+    size = Math.max(size, maxY - minY, maxX - minX);
+  }
+  if (edge) return "edge";
+  if (size > 0.6) return "close";
+  if (size < 0.12) return "far";
+  return "ok";
+}
 
 export function useSignPractice() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -23,10 +46,12 @@ export function useSignPractice() {
   const recordingRef = useRef(false);
   const rafRef = useRef(0);
   const handsCountRef = useRef(-1);
+  const hintRef = useRef<Hint>("none");
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [count, setCount] = useState(3);
   const [handsVisible, setHandsVisible] = useState(0);
+  const [hint, setHint] = useState<Hint>("none");
   const [modelReady, setModelReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
 
@@ -79,6 +104,11 @@ export function useSignPractice() {
               handsCountRef.current = hands.length;
               setHandsVisible(hands.length);
             }
+            const h = computeHint(hands);
+            if (h !== hintRef.current) {
+              hintRef.current = h;
+              setHint(h);
+            }
             if (recordingRef.current && hands.length > 0) {
               framesRef.current.push(buildFrameFeatures(hands));
             }
@@ -120,7 +150,7 @@ export function useSignPractice() {
             recordingRef.current = false;
             const frames = framesRef.current;
             setPhase("result");
-            if (!isReady() || frames.length === 0) {
+            if (!isReady() || frames.length < MIN_FRAMES) {
               resolve(null);
               return;
             }
@@ -139,6 +169,7 @@ export function useSignPractice() {
     setPhase,
     count,
     handsVisible,
+    hint,
     modelReady,
     cameraError,
     start,
