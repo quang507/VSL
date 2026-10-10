@@ -9,6 +9,7 @@ import { useLabels } from "@/lib/useLabels";
 import { practiceUrl } from "@/lib/nav";
 import { QIPEDC_SOURCE, VARIANT_NAME, fold, preferredVariant, useQipedc, variantsOf, videoUrl, wordUrl } from "@/lib/qipedc";
 import Link from "next/link";
+import SaveBtn from "@/components/SaveBtn";
 
 function WordInner() {
   const params = useSearchParams();
@@ -22,12 +23,16 @@ function WordInner() {
   const [variant, setVariant] = useState<string>("");
   const [slow, setSlow] = useState(profile.slowVideo);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (sense) setVariant(preferredVariant(sense, profile.region));
   }, [sense, profile.region]);
-  useEffect(() => setFailed(false), [variant]);
+  useEffect(() => {
+    setFailed(false);
+    setReady(false);
+  }, [variant, si]);
   useEffect(() => {
     if (ref.current) ref.current.playbackRate = slow ? 0.5 : 1;
   }, [slow, variant]);
@@ -56,7 +61,7 @@ function WordInner() {
 
   return (
     <main className="app">
-      <TopBar back="/tu-dien" />
+      <TopBar back="/tu-dien" right={<SaveBtn word={entry.w} />} />
       <header className="col col--tight">
         {sense.t && <span className="eyebrow">{sense.t}</span>}
         <h1 className="d4">{entry.w}</h1>
@@ -84,6 +89,7 @@ function WordInner() {
             muted
             playsInline
             onLoadedData={() => {
+              setReady(true);
               if (ref.current) ref.current.playbackRate = slow ? 0.5 : 1;
             }}
             onClick={() => (ref.current?.paused ? ref.current.play().catch(() => {}) : ref.current?.pause())}
@@ -96,11 +102,16 @@ function WordInner() {
             <span className="bb">Không tải được video. Cần có mạng để xem từ điển Bộ GD&ĐT.</span>
           </div>
         )}
+        {id && !failed && !ready && (
+          <div className="col" role="status" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", color: "#fff", background: "#111" }}>
+            <span className="bb">Đang tải video…</span>
+          </div>
+        )}
         <button
           type="button"
           className="pill"
           onClick={() => setSlow(!slow)}
-          style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 36 }}
+          style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 44 }}
           aria-label="Đổi tốc độ video"
         >
           <Gauge size={16} aria-hidden /> {slow ? "Chậm 0.5x" : "Tốc độ 1x"}

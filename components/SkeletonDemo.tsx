@@ -77,7 +77,7 @@ export default function SkeletonDemo({ frames: raw, fps = 30 }: { frames: DemoFr
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>Đang tải mẫu…</div>
       )}
       <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", justifyContent: "space-between" }}>
-        <button type="button" className="pill" onClick={() => setSlow(!slow)} style={{ background: "rgba(255,255,255,.18)", color: "#fff", border: "none", minHeight: 36 }} aria-label="Đổi tốc độ">
+        <button type="button" className="pill" onClick={() => setSlow(!slow)} style={{ background: "rgba(255,255,255,.18)", color: "#fff", border: "none", minHeight: 44 }} aria-label="Đổi tốc độ">
           <Gauge size={16} aria-hidden /> {slow ? "Chậm 0.5x" : "Tốc độ 1x"}
         </button>
         <span className="pill" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}>

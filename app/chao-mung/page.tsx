@@ -29,45 +29,67 @@ export default function Onboarding() {
     router.replace("/");
   };
 
+  // Figma · Onboarding · "Screen / Welcome" (302:9472). App không có tài khoản → thay khối
+  // "Đăng nhập nhanh" (Google/Apple/Facebook) bằng một nút Bắt đầu; dữ liệu lưu trên máy.
   if (step === 0)
     return (
-      <main className="app" style={{ gap: 20 }}>
+      <main className="app" style={{ padding: 0, gap: 0, minHeight: "100dvh", overflow: "hidden" }}>
+        {/* Group / Background Decorations (302:9515): x −40, y −43.5, 541×300 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/logo.png" alt="VSLV" style={{ width: 96 }} />
-        <div className="onb-vids">
-          {["Chào", "Cảm ơn", "Xin lỗi", "Đồng ý"].map((w) => (
-            <figure key={w} style={{ margin: 0, position: "relative" }}>
-              <LoopVideo word={w} style={{ aspectRatio: "1 / 1" }} />
-              <figcaption className="pill" style={{ position: "absolute", left: 8, bottom: 8, background: "rgba(255,255,255,.92)", color: "var(--txt)" }}>
-                {w}
-              </figcaption>
-            </figure>
-          ))}
+        <img src="/img/figma/w-blobs.svg" alt="" width={541} height={300} style={{ position: "absolute", left: -40, top: -43.5, width: 541, height: 300, zIndex: -1, pointerEvents: "none" }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingTop: "calc(env(safe-area-inset-top) + 34px)" }}>
+          {/* Image / Brand Logo (302:9527): 120×82 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/img/logo.webp" alt="VSLV — Learn. Sign. Connect." style={{ width: 120, height: 82, objectFit: "contain", margin: "0 auto 4px", flex: "none" }} />
+          {/* Group / Welcome Artwork (302:9473): khung 402×341, toạ độ theo % */}
+          <div className="welcome-art" aria-hidden>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/img/figma/w-string.webp" alt="" style={{ left: "0%", top: "32.55%", width: "100%", height: "67.45%" }} />
+            <span style={{ left: "51%", top: "14.66%", width: "44.36%", height: "53.39%" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/figma/w-mascot.webp" alt="" style={{ width: "84.12%", height: "85.03%", transform: "rotate(11.72deg)" }} />
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/img/figma/w-presenter.webp" alt="" fetchPriority="high" style={{ left: "10.45%", top: "11.73%", width: "69.65%", height: "78.01%" }} />
+            <span style={{ left: "50%", top: "0%", width: "27.78%", height: "32.5%" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/figma/w-greeting.webp" alt="" style={{ width: "80.6%", height: "80.08%", transform: "rotate(16.65deg)" }} />
+            </span>
+          </div>
         </div>
-        <h1 className="h1" style={{ fontSize: 34 }}>
-          Học ngôn ngữ ký hiệu Việt Nam <span className="mark">bằng chính đôi tay</span>
-        </h1>
-        <ol className="col" style={{ margin: 0, padding: 0, listStyle: "none", gap: 14 }}>
-          {[
-            ["Xem mẫu rồi làm theo", "100 từ có video người thật ký, 59 câu có hoạt hình bàn tay, xem chậm được."],
-            ["Ký trước camera", "App đọc vị trí bàn tay ngay trên máy, không gửi video đi đâu."],
-            ["Biết đúng sai bằng mắt", "Viền màn hình chớp xanh hoặc đỏ, máy rung. Không cần âm thanh."],
-          ].map(([t, d], i) => (
-            <li key={t} className="row row--top" style={{ gap: 14 }}>
-              <span className="step-n" style={{ width: 36, height: 36, fontSize: 16 }} aria-hidden>
-                {i + 1}
-              </span>
-              <span className="col col--tight">
-                <span className="bb">{t}</span>
-                <span className="bm">{d}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-        <div className="grow" />
-        <div style={{ position: "sticky", bottom: "calc(12px + env(safe-area-inset-bottom))", zIndex: 5 }}>
-          <Btn onClick={() => setStep(1)}>Bắt đầu</Btn>
-        </div>
+        {/* Group / Authentication Options (302:9479) — app không có tài khoản: giữ khung, thay nội dung */}
+        <section className="welcome-sheet">
+          <div className="col center" style={{ gap: 0 }}>
+            <h1 className="h3" style={{ color: "var(--txt)", lineHeight: "32px" }}>
+              Học ngôn ngữ ký hiệu
+            </h1>
+            <p className="bm" style={{ margin: 0, fontSize: 16, lineHeight: "24px" }}>
+              Cùng khám phá ngôn ngữ ký hiệu Việt Nam nhé.
+            </p>
+          </div>
+          <ul className="col" style={{ listStyle: "none", margin: 0, padding: 0, gap: 10 }}>
+            {[
+              ["1", "Xem người thật ký mẫu, xem chậm được"],
+              ["2", "Ký trước camera, app chấm ngay trên máy"],
+              ["3", "Biết đúng sai bằng rung và màu, không cần âm thanh"],
+            ].map(([n, t]) => (
+              <li key={n} className="row" style={{ gap: 12 }}>
+                <span className="icon-circle" style={{ width: 28, height: 28, background: "var(--acc-subtle)", color: "var(--acc)", fontWeight: 700, fontSize: 14 }}>
+                  {n}
+                </span>
+                <span className="bm" style={{ color: "var(--txt)", fontSize: 15 }}>
+                  {t}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Btn onClick={() => setStep(1)} style={{ background: "var(--yel)", color: "var(--txt)", boxShadow: "0 4px 0 #c99a12" }}>
+            Bắt đầu
+          </Btn>
+          <p className="sm center" style={{ margin: 0 }}>
+            Không cần tài khoản · tiến độ lưu ngay trên máy
+          </p>
+        </section>
       </main>
     );
 

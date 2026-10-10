@@ -56,7 +56,7 @@ export default function SampleMedia({ word, slow = false, aspect = "1 / 1", cont
       )}
       {ok && controls && (
         <div style={{ position: "absolute", top: 12, left: 12, right: 12, display: "flex", justifyContent: "space-between" }}>
-          <button type="button" className="pill" onClick={() => setRate(rate === 1 ? 0.5 : 1)} style={{ background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 36 }} aria-label="Đổi tốc độ video">
+          <button type="button" className="pill" onClick={() => setRate(rate === 1 ? 0.5 : 1)} style={{ background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 44 }} aria-label="Đổi tốc độ video">
             <Gauge size={16} aria-hidden /> {rate === 1 ? "Tốc độ 1x" : "Chậm 0.5x"}
           </button>
           <span className="pill" style={{ background: "rgba(0,0,0,.6)", color: "#fff" }}>

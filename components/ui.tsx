@@ -87,10 +87,10 @@ export function Pill({ children, bg = "var(--brand-soft)", fg = "var(--acc)", ic
   );
 }
 
-export function Bar({ pct, color = "var(--brand)", h = 10, track }: { pct: number; color?: string; h?: number; track?: string }) {
+export function Bar({ pct, color = "var(--brand)", h = 10, track, label = "Tiến độ" }: { pct: number; color?: string; h?: number; track?: string; label?: string }) {
   const v = Math.max(0, Math.min(100, pct));
   return (
-    <div className="bar" style={{ height: h, background: track }} role="progressbar" aria-valuenow={Math.round(v)} aria-valuemin={0} aria-valuemax={100}>
+    <div className="bar" style={{ height: h, background: track }} role="progressbar" aria-label={label} aria-valuenow={Math.round(v)} aria-valuemin={0} aria-valuemax={100}>
       <i style={{ width: `${Math.max(v, v > 0 ? 4 : 0)}%`, background: color }} />
     </div>
   );

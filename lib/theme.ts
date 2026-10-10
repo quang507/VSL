@@ -43,3 +43,8 @@ export function lessonIcon(id: string): LucideIcon {
 export function sampleUrl(word: string) {
   return `/samples/${encodeURIComponent(word)}.mp4`;
 }
+
+/** Ảnh tĩnh 160×160 lấy từ video mẫu (training: ffmpeg, giây thứ 1) — dùng cho danh sách. */
+export function thumbUrl(word: string) {
+  return `/samples/thumbs/${encodeURIComponent(word)}.jpg`;
+}

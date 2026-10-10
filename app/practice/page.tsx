@@ -1,5 +1,6 @@
 "use client";
 
+import CameraError from "@/components/CameraError";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, RotateCcw, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
@@ -16,6 +17,7 @@ import type { Prediction } from "@/lib/classifier";
 import CameraStage from "@/components/CameraStage";
 import SampleMedia from "@/components/SampleMedia";
 import Flash from "@/components/Flash";
+import SaveBtn from "@/components/SaveBtn";
 import { Bar, Btn, IconBtn, IconCircle, Pill, Ring, Segmented } from "@/components/ui";
 
 function PracticeInner() {
@@ -96,6 +98,7 @@ function PracticeInner() {
           <span className="sm">{lesson ? `${lesson.title} · ${idx + 1}/${lesson.words.length}` : "Luyện ký hiệu"}</span>
           {lesson && <Bar pct={((idx + (correct ? 1 : 0)) / lesson.words.length) * 100} h={8} />}
         </div>
+        {target && <SaveBtn word={target} />}
       </div>
 
       <div className="col col--tight">
@@ -140,14 +143,7 @@ function PracticeInner() {
         <>
           <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
 
-          {cameraError && (
-            <div className="tile t-red" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Info size={22} color="var(--neg)" aria-hidden />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                Không mở được camera. Hãy cho phép quyền camera trong cài đặt trình duyệt rồi thử lại.
-              </span>
-            </div>
-          )}
+          {cameraError && <CameraError note="Bạn vẫn xem được video mẫu." />}
           {!modelReady && !cameraError && phase !== "loading" && (
             <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Info size={22} color="var(--yel-txt)" aria-hidden />
@@ -210,7 +206,7 @@ function PracticeInner() {
           </div>
           {pred && !correct && (
             <Pill bg="var(--neu)" fg="var(--txt2)" icon={Info} style={{ alignSelf: "center", whiteSpace: "normal" }}>
-              Cần đúng từ và độ tin cậy từ {Math.round(CONFIDENCE_THRESHOLD * 100)}%
+              Cần đúng từ và độ tin cậy từ {Math.round(CONFIDENCE_THRESHOLD * 100)}%. AI có thể nhận nhầm, nhất là khi thiếu sáng hoặc tay ra khỏi khung.
             </Pill>
           )}
         </>

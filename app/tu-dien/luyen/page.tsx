@@ -1,5 +1,6 @@
 "use client";
 
+import CameraError from "@/components/CameraError";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Gauge, Info } from "lucide-react";
@@ -64,7 +65,7 @@ function Inner() {
               type="button"
               className="pill"
               onClick={() => setSlow(!slow)}
-              style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 36 }}
+              style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,.6)", color: "#fff", border: "none", minHeight: 44 }}
               aria-label="Đổi tốc độ video mẫu"
             >
               <Gauge size={16} aria-hidden /> {slow ? "Chậm 0.5x" : "Tốc độ 1x"}
@@ -83,12 +84,7 @@ function Inner() {
         <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
       </div>
 
-      {cameraError && (
-        <div className="card card--row">
-          <Info size={22} color="var(--neg)" aria-hidden />
-          <span className="bm">Không mở được camera. Hãy cho phép quyền camera rồi thử lại.</span>
-        </div>
-      )}
+      {cameraError && <CameraError note="Bạn vẫn xem được video mẫu." />}
       <div className="card card--row">
         <Info size={22} color="var(--txt2)" aria-hidden />
         <span className="bm">

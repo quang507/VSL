@@ -8,3 +8,7 @@ next-env.d.ts
 .DS_Store
 .qr-iphone.png
 .eval/
+
+# Kết quả kiểm thử (tạo lại mỗi lần chạy)
+tests/report/
+test-results/

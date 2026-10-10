@@ -9,7 +9,9 @@
     "lint": "next lint",
     "cap:sync": "next build && cap sync",
     "cap:android": "cap open android",
-    "cap:ios": "cap open ios"
+    "cap:ios": "cap open ios",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test a11y"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
@@ -23,7 +25,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@capacitor/cli": "^8.5.3",
+    "@playwright/test": "^1.64.0",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

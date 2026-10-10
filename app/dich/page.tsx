@@ -1,5 +1,6 @@
 "use client";
 
+import CameraError from "@/components/CameraError";
 import { UNCLEAR_PHRASES } from "@/lib/phrases";
 import { useEffect, useState } from "react";
 import { Volume2, Maximize2, Trash2, Pause, Play, X, Info, Hand, Loader2, FlaskConical } from "lucide-react";
@@ -157,14 +158,7 @@ export default function Translate() {
       </div>
       {ttsMsg && <span className="sm">{ttsMsg}</span>}
 
-      {cameraError && (
-        <div className="tile t-red" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Info size={22} color="var(--neg)" aria-hidden />
-          <span className="bm" style={{ color: "var(--txt)" }}>
-            Không mở được camera. Hãy cho phép quyền camera rồi tải lại trang.
-          </span>
-        </div>
-      )}
+      {cameraError && <CameraError />}
 
       <Dialog open={editing !== null} onClose={() => setEditing(null)}>
         <span className="h3">Có phải bạn muốn nói…</span>

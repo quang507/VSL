@@ -1,5 +1,6 @@
 "use client";
 
+import CameraError from "@/components/CameraError";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, RotateCcw, SkipForward, Info, ChevronLeft } from "lucide-react";
@@ -93,6 +94,7 @@ function Inner() {
       ) : (
         <>
           <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
+          {cameraError && <CameraError note="Bạn vẫn xem được hoạt hình mẫu." />}
           {!modelReady && !cameraError && phase !== "loading" && (
             <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Info size={22} color="var(--yel-txt)" aria-hidden />
