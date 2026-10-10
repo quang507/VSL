@@ -300,7 +300,8 @@ Rà theo các lý do Apple hay từ chối. Chi tiết ở `docs/store/`.
 | Icon và màn khởi động mặc định | 2.3 | **Đã sửa**: `scripts/make_icons.py` |
 | Thiếu khai báo quyền riêng tư và mã hoá | 5.1 | **Đã sửa**: `PrivacyInfo.xcprivacy`, `ITSAppUsesNonExemptEncryption` |
 | Người duyệt không biết ký hiệu, tưởng app không chạy | 2.1 | Có bản nháp ghi chú. **Còn thiếu video demo** |
-| Video từ điển Bộ GD&ĐT và ảnh màn chào chưa có giấy tờ bản quyền | 5.2 | **Chưa xong**: cần văn bản của QIPEDC, cần xác nhận nguồn ảnh |
+| Video từ điển Bộ GD&ĐT chưa có giấy tờ bản quyền | 5.2 | **Chưa xong**: cần văn bản của QIPEDC |
+| Ảnh màn chào (cô gái, mascot) | 5.2 | Do nhóm tạo bằng AI, không thuộc bên thứ ba. Cần kiểm điều khoản thương mại của công cụ |
 | Mô tả nói quá khả năng nhận diện | 2.3 | Bản nháp mô tả đã ghi rõ "có thể nhận nhầm" |
 
 Kiểm tay trên máy thật trước khi nộp (không tự động được):

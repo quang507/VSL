@@ -51,6 +51,8 @@ THIRD-PARTY CONTENT
   and Training sign language dictionary (qipedc.moet.gov.vn) with their permission.
   [ATTACH PERMISSION LETTER OR EMAIL IN APP STORE CONNECT]
 - Fonts Baloo 2 and Nunito: SIL Open Font License 1.1.
+- Welcome-screen illustration (presenter and mascot): created by our team with an AI image tool.
+  It does not depict a real person.
 
 NATIVE FEATURES
 Camera (AVFoundation via WKWebView getUserMedia), haptic feedback (UINotificationFeedbackGenerator),
@@ -80,4 +82,14 @@ CONTACT
 1. **Quay video demo 30 giây** rồi đưa lên một link xem được không cần đăng nhập (YouTube không công khai là đủ). Thay `[LINK TO DEMO VIDEO]`.
 2. **Xin văn bản cho phép của QIPEDC**, đính kèm ở mục App Review Information → Attachment. Nếu chưa có, tắt tab "Bộ GD&ĐT" trong bản nộp và xoá đoạn tương ứng ở trên.
 3. **Điền tên** vào `[YOUR NAME]`. Số điện thoại liên hệ điền ở ô riêng của App Store Connect.
-4. **Xác nhận bản quyền ảnh màn chào** (ảnh cô gái và mascot lấy từ Figma). Nếu không rõ nguồn, thay bằng video người ký thật trước khi nộp.
+4. **Ảnh màn chào (cô gái và mascot) do nhóm tạo bằng AI**, không phải ảnh của bên thứ ba, nên không vướng mục 5.2. Việc còn lại: ghi tên công cụ đã dùng vào bảng dưới và kiểm điều khoản của công cụ đó có cho dùng thương mại không (một số gói miễn phí không cho).
+
+## Nguồn gốc hình ảnh trong app
+
+| Hình | Nguồn | Giấy tờ |
+|---|---|---|
+| Ảnh cô gái vẫy tay, mascot, chữ "Xin chào!" ở màn chào | Nhóm tạo bằng AI. Công cụ: [ĐIỀN TÊN] | Điều khoản dùng thương mại của công cụ |
+| Mascot ở Luyện tập, Hồ sơ; ảnh trang trí (mây, sóng, lấp lánh) | Lấy từ file Figma của nhóm | Do nhóm tạo |
+| 100 video mẫu và ảnh thu nhỏ người ký | ViSignLanguage-Video, CC-BY-4.0 | Ghi nguồn trong app (đã có) |
+| Video từ điển 3.315 từ | Bộ GD&ĐT, phát từ qipedc.moet.gov.vn | **Cần văn bản cho phép** |
+| Logo VSLV, icon | Do nhóm tạo | Không cần |
