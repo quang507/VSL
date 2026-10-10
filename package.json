@@ -11,11 +11,16 @@
     "cap:android": "cap open android",
     "cap:ios": "cap open ios",
     "test:e2e": "playwright test",
-    "test:a11y": "playwright test a11y"
+    "test:a11y": "playwright test a11y",
+    "prebuild": "node scripts/copy-mediapipe.mjs",
+    "predev": "node scripts/copy-mediapipe.mjs",
+    "store:screenshots": "node scripts/store-screenshots.mjs",
+    "store:check": "python scripts/check_listing.py"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.3",
     "@mediapipe/tasks-vision": "^0.10.14",
     "@tensorflow/tfjs": "^4.20.0",

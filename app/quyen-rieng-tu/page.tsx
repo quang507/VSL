@@ -17,7 +17,7 @@ const SECTIONS = [
   {
     icon: Globe,
     title: "Kết nối mạng",
-    body: "Video của từ điển Bộ GD&ĐT được phát từ qipedc.moet.gov.vn. Bộ nhận diện bàn tay (MediaPipe) được tải từ jsDelivr và Google lần đầu mở camera. Các máy chủ này thấy địa chỉ IP của bạn như khi mở một trang web.",
+    body: "Bộ nhận diện bàn tay và 100 video mẫu nằm sẵn trong app, không cần mạng. Chỉ video của từ điển Bộ GD&ĐT được phát qua mạng từ qipedc.moet.gov.vn; máy chủ đó thấy địa chỉ IP của bạn như khi mở một trang web.",
   },
   {
     icon: ShieldCheck,

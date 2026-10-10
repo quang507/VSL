@@ -68,6 +68,7 @@ Chạy trên ba môi trường: **iPhone 13 (WebKit, nhân của Safari)**, **Pi
 | N6 | Mở Câu giao tiếp | Đúng 59 câu, câu chưa rõ nghĩa không hiện |
 | N7 | Đi qua 4 tab, bấm nút tìm | Đúng trang; ô tìm được focus |
 | N8 | Mở luyện với camera (camera giả) | Thấy khung camera và gợi ý "Đưa tay vào khung" |
+| N9 | Chặn mọi máy chủ ngoài rồi học và mở luyện camera | Video mẫu chạy, camera chấm được, không có yêu cầu nào ra ngoài (App Store mục 4.2) |
 | R | Bề rộng 320, 390, 768, 1280px | Không trang nào cuộn ngang |
 
 ### Tiếp cận (`a11y.spec.ts`)
@@ -267,8 +268,10 @@ Mức độ: 0 không phải lỗi · 1 thẩm mỹ · 2 nhỏ · 3 lớn · 4 n
 |---|---|
 | Kịch bản N1–N7 trên iPhone, Android, máy tính | 21/21 đạt |
 | N8 camera giả trên Android | Đạt |
+| N9 chạy không cần mạng ngoài | Đạt |
 | Không cuộn ngang ở 320, 390, 768, 1280px | Đạt |
 | axe-core, 16 trang × 2 môi trường | 32/32 đạt, 0 vi phạm nghiêm trọng |
+| Tổng số test tự động | 59/59 đạt |
 | Vùng chạm từ 44px | Đạt |
 | Lighthouse màn chào | Hiệu năng 100 · Tiếp cận 100 · Thực hành tốt 100 · LCP 1,4 giây |
 | Lighthouse Từ điển | Hiệu năng 93 · Tiếp cận 100 · Thực hành tốt 100 · CLS 0,022 |
@@ -286,7 +289,31 @@ Mức độ: 0 không phải lỗi · 1 thẩm mỹ · 2 nhỏ · 3 lớn · 4 n
 | Nhãn thẻ "Từ của ngày" không khớp chữ hiển thị | Lighthouse | Bỏ nhãn thừa |
 | Lỗi camera không có nút thử lại | Heuristic #9 | Thêm nút và hướng dẫn |
 
-## 11. Việc tiếp theo
+## 11. Chuẩn bị lên cửa hàng
+
+Rà theo các lý do Apple hay từ chối. Chi tiết ở `docs/store/`.
+
+| Nguy cơ | Mục của Apple | Tình trạng |
+|---|---|---|
+| Bị coi là web bọc lại: bộ nhận diện tay tải từ CDN, mất mạng là hỏng | 4.2 | **Đã sửa**: nhúng MediaPipe và model vào app, có test N9 |
+| Rung không chạy trên iPhone (trình duyệt iOS không có API rung) | 2.1 | **Đã sửa**: dùng Haptics gốc của Capacitor. Cần thử trên máy thật |
+| Icon và màn khởi động mặc định | 2.3 | **Đã sửa**: `scripts/make_icons.py` |
+| Thiếu khai báo quyền riêng tư và mã hoá | 5.1 | **Đã sửa**: `PrivacyInfo.xcprivacy`, `ITSAppUsesNonExemptEncryption` |
+| Người duyệt không biết ký hiệu, tưởng app không chạy | 2.1 | Có bản nháp ghi chú. **Còn thiếu video demo** |
+| Video từ điển Bộ GD&ĐT và ảnh màn chào chưa có giấy tờ bản quyền | 5.2 | **Chưa xong**: cần văn bản của QIPEDC, cần xác nhận nguồn ảnh |
+| Mô tả nói quá khả năng nhận diện | 2.3 | Bản nháp mô tả đã ghi rõ "có thể nhận nhầm" |
+
+Kiểm tay trên máy thật trước khi nộp (không tự động được):
+
+- [ ] iPhone màn nhỏ và iPhone có tai thỏ: không bị che nội dung
+- [ ] iPad: bố cục 2 cột, xoay dọc
+- [ ] Chế độ máy bay: học và chấm camera vẫn chạy; tab Bộ GD&ĐT báo mất mạng
+- [ ] Từ chối quyền camera, rồi cấp lại trong Cài đặt máy
+- [ ] Rung: đúng 1 nhịp, sai 2 nhịp; tắt được trong Cài đặt
+- [ ] VoiceOver đi hết luồng: mở app, học tiếp, xem mẫu, quay lại
+- [ ] Thuận tay trái, thiếu sáng, cách 0,5 mét và 1,5 mét
+
+## 12. Việc tiếp theo
 
 1. Tổ chức buổi thử với 5 đến 8 người theo mục 6 (cần phiên dịch ký hiệu).
 2. Kiểm định camera với người thật theo mục 6.4, dùng kết quả để chọn lại ngưỡng báo "Đúng".

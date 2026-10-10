@@ -100,6 +100,9 @@ function WordInner() {
           <div className="col" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", color: "#fff", textAlign: "center", padding: 16 }}>
             <WifiOff size={28} aria-hidden />
             <span className="bb">Không tải được video. Cần có mạng để xem từ điển Bộ GD&ĐT.</span>
+            <button type="button" className="btn btn--tertiary btn--md" onClick={() => setFailed(false)}>
+              Thử lại
+            </button>
           </div>
         )}
         {id && !failed && !ready && (

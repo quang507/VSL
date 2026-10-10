@@ -101,6 +101,26 @@ test("N8 · Luyện với camera: thấy khung camera và gợi ý đưa tay và
   await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
 });
 
+test("N9 · Không cần mạng ngoài: chặn mọi máy chủ khác, vẫn học và luyện camera được", async ({ page }) => {
+  test.skip(test.info().project.name !== "android-chromium", "cần camera giả");
+  const external: string[] = [];
+  await page.route("**/*", (route) => {
+    const u = new URL(route.request().url());
+    if (u.hostname === "localhost") return route.continue();
+    external.push(u.hostname);
+    return route.abort();
+  });
+  await seedUser(page);
+  await page.goto("/");
+  await page.getByRole("region", { name: "Tiếp tục học" }).getByRole("link", { name: /Học tiếp/ }).click();
+  await expect(page.locator(".media video")).toHaveJSProperty("readyState", 4);
+  await page.getByRole("button", { name: /Tập trước camera/ }).click();
+  // Bộ nhận diện tay và model đều nằm trong app
+  await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "Bắt đầu ký" })).toBeEnabled({ timeout: 20_000 });
+  expect(external, "app không được gọi máy chủ ngoài ở luồng học chính").toEqual([]);
+});
+
 for (const w of [320, 390, 768, 1280]) {
   test(`R · không cuộn ngang ở ${w}px`, async ({ page }) => {
     test.skip(test.info().project.name !== "desktop-chromium", "đo một lần trên desktop-chromium");

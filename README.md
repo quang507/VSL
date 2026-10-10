@@ -19,6 +19,14 @@ npm run test:e2e
 
 Kế hoạch kiểm thử và kiểm định UX: [docs/TEST_PLAN.md](docs/TEST_PLAN.md).
 
+## Lên cửa hàng
+
+- Ghi chú cho người duyệt Apple: [docs/store/APP_REVIEW_NOTES.md](docs/store/APP_REVIEW_NOTES.md)
+- Mô tả, từ khoá, khai báo quyền riêng tư: [docs/store/STORE_LISTING.md](docs/store/STORE_LISTING.md) (`npm run store:check` kiểm số ký tự)
+- Ảnh chụp màn hình iPhone 6,9" và iPad 13": `npm run store:screenshots`
+- Icon và màn khởi động: `python scripts/make_icons.py`
+- Bộ nhận diện tay (MediaPipe) nằm sẵn trong app: `scripts/copy-mediapipe.mjs` chạy tự động trước khi build
+
 ## Công nghệ
 
 - **Next.js 14** (App Router)

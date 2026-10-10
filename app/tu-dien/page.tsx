@@ -3,7 +3,7 @@
 import { asset } from "@/lib/base";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, X, CheckCircle2, ChevronRight, Camera, ArrowRight, AlarmClock, RotateCcw, Zap } from "lucide-react";
+import { Search, X, CheckCircle2, ChevronRight, Camera, ArrowRight, AlarmClock, RotateCcw, Zap, WifiOff } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LoopVideo from "@/components/LoopVideo";
 import { Segmented } from "@/components/ui";
@@ -15,6 +15,7 @@ import { dayStreak, dueWords, isLearned } from "@/lib/progress";
 import { practiceUrl } from "@/lib/nav";
 import { thumbUrl } from "@/lib/theme";
 import { useSaved } from "@/lib/saved";
+import { useOnline } from "@/lib/useOnline";
 import { QIPEDC_SOURCE, fold, useQipedc, wordUrl, type QEntry } from "@/lib/qipedc";
 
 // Chữ cái đầu theo bảng chữ Việt: bỏ dấu thanh, giữ Ă Â Đ Ê Ô Ơ Ư
@@ -64,6 +65,7 @@ export default function Dictionary() {
   const [progress] = useProgress();
   const { profile } = useProfile();
   const { saved } = useSaved();
+  const online = useOnline();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<Tab>("cam");
   const [topic, setTopic] = useState<string>("all");
@@ -390,6 +392,14 @@ export default function Dictionary() {
             </section>
           ) : (
             <section className="col" style={{ gap: 12 }} aria-label="Từ điển Bộ GD&ĐT">
+              {!online && (
+                <div className="tile t-yel" role="status" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <WifiOff size={22} color="var(--yel-txt)" aria-hidden style={{ flex: "none" }} />
+                  <span className="bm" style={{ color: "var(--txt)" }}>
+                    Đang không có mạng. Video của từ điển này cần mạng. 100 từ ở tab “Chấm camera” vẫn học được.
+                  </span>
+                </div>
+              )}
               <div className="letters" role="group" aria-label="Chọn chữ cái">
                 {letters.map((l) => (
                   <button key={l} type="button" aria-pressed={l === letter} onClick={() => setLetter(l)}>

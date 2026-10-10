@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check } from "lucide-react";
 import { Btn, Dialog, IconCircle, Segmented, Toggle, TopBar } from "@/components/ui";
 import { REGIONS, useProfile, resetProfile } from "@/lib/profile";
 import { useProgress } from "@/lib/useProgress";
 import { setDailyGoal, setSoundOn, resetProgress, loadProgress } from "@/lib/progress";
+import { canVibrate, signal } from "@/lib/feedback";
 
 function Row({ icon, bg, fg, title, sub, right }: { icon: typeof MapPin; bg: string; fg: string; title: string; sub?: string; right: React.ReactNode }) {
   return (
@@ -24,6 +25,9 @@ function Row({ icon, bg, fg, title, sub, right }: { icon: typeof MapPin; bg: str
 export default function Settings() {
   const router = useRouter();
   const { profile, update } = useProfile();
+  // Chỉ biết sau khi chạy trên máy (tránh lệch giữa bản dựng sẵn và trình duyệt)
+  const [vib, setVib] = useState(true);
+  useEffect(() => setVib(canVibrate()), []);
   const [progress, setProgress] = useProgress();
   const [confirm, setConfirm] = useState(false);
   const [regionOpen, setRegionOpen] = useState(false);
@@ -63,7 +67,27 @@ export default function Settings() {
 
       <span className="bb muted">Báo đúng / sai</span>
       <div className="card card--list">
-        <Row icon={Vibrate} bg="var(--pur-soft)" fg="var(--pur-txt)" title="Rung" sub="Đúng: rung ngắn · Sai: rung 2 nhịp" right={<Toggle label="Rung" on={profile.vibrate} onChange={(v) => update({ vibrate: v })} />} />
+        <Row
+          icon={Vibrate}
+          bg="var(--pur-soft)"
+          fg="var(--pur-txt)"
+          title="Rung"
+          sub={vib ? "Đúng: rung 1 nhịp · Sai: rung 2 nhịp" : "Trình duyệt này không rung được. Bản cài từ cửa hàng ứng dụng có rung."}
+          right={
+            vib ? (
+              <Toggle
+                label="Rung"
+                on={profile.vibrate}
+                onChange={(v) => {
+                  update({ vibrate: v });
+                  if (v) signal(true, { sound: false, vibrate: true }); // rung thử để biết đã bật
+                }}
+              />
+            ) : (
+              <span className="sm" style={{ flex: "none" }}>Không hỗ trợ</span>
+            )
+          }
+        />
         <Row icon={Zap} bg="var(--grn-soft)" fg="var(--grn-txt)" title="Nháy viền màn hình" sub="Xanh khi đúng, đỏ khi sai" right={<Toggle label="Nháy viền màn hình" on={profile.flash} onChange={(v) => update({ flash: v })} />} />
         <Row icon={Volume2} bg="var(--neu)" fg="var(--txt)" title="Âm thanh" sub="Cho người nghe trong gia đình" right={<Toggle label="Âm thanh" on={progress.soundOn} onChange={(v) => setProgress(setSoundOn(v))} />} />
       </div>

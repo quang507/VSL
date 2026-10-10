@@ -1,23 +1,23 @@
-// Khởi tạo MediaPipe HandLandmarker (chạy bằng WebAssembly trong browser)
+// Khởi tạo MediaPipe HandLandmarker (chạy bằng WebAssembly trong browser).
+// WASM và model nằm sẵn trong app (public/mediapipe, xem scripts/copy-mediapipe.mjs):
+// không cần mạng, và luôn đúng phiên bản với thư viện JS.
 import {
   HandLandmarker,
   FilesetResolver,
 } from "@mediapipe/tasks-vision";
 import { NUM_HANDS } from "./constants";
+import { asset } from "./base";
 import type { Pt, HandResult } from "./landmarks";
 
 let landmarker: HandLandmarker | null = null;
 
 export async function getHandLandmarker(): Promise<HandLandmarker> {
   if (landmarker) return landmarker;
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-  );
+  const vision = await FilesetResolver.forVisionTasks(asset("/mediapipe/wasm"));
   const make = (delegate: "GPU" | "CPU") =>
     HandLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        modelAssetPath: asset("/mediapipe/hand_landmarker.task"),
         delegate,
       },
       runningMode: "VIDEO",

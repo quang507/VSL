@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- App chỉ dùng HTTPS của hệ điều hành, không có mã hoá riêng → bỏ qua câu hỏi xuất khẩu mã hoá -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>VSLV dùng camera để nhận diện bàn tay và chấm điểm ký hiệu. Video được xử lý ngay trên máy, không gửi đi đâu.</string>
   <key>CAPACITOR_DEBUG</key>
