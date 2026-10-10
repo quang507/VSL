@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { X, Camera, ArrowRight, SkipForward, RotateCcw, Info } from "lucide-react";
@@ -92,7 +93,7 @@ function QuizInner() {
           <IconBtn icon={X} label="Đóng" onClick={() => router.push("/luyen-tap")} />
         </div>
         <div className="grow" />
-        <Sticker src="/img/mascot_peace.png" size={168} border="var(--grn-bd)" />
+        <Sticker src={asset("/img/mascot_peace.png")} size={168} border="var(--grn-bd)" />
         <h1 className="h2">Chưa có từ nào đến hạn ôn</h1>
         <p className="bm" style={{ margin: 0 }}>
           Học thêm từ mới, rồi quay lại sau để ôn cho nhớ lâu nhé.
@@ -107,7 +108,7 @@ function QuizInner() {
     return (
       <main className="app app--center" style={{ gap: 18 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="cloud" src="/img/cloud.png" alt="" />
+        <img className="cloud" src={asset("/img/cloud.png")} alt="" />
         <div className="grow" />
         <Pill bg={pct >= 80 ? "var(--grn-soft)" : "var(--org-soft)"} fg={pct >= 80 ? "var(--grn-txt)" : "var(--org-txt)"}>
           {review ? "Hoàn thành phiên ôn" : "Hoàn thành đố vui"}

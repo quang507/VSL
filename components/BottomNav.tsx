@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Route, Dumbbell, Languages, CircleUserRound, Search } from "lucide-react";
@@ -20,7 +21,7 @@ export default function BottomNav() {
   return (
     <nav className="nav" aria-label="Điều hướng chính">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="nav-brand" src="/img/logo.webp" alt="VSLV" />
+      <img className="nav-brand" src={asset("/img/logo.webp")} alt="VSLV" />
       <div className="nav-in">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" : path.startsWith(href);

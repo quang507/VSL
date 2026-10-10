@@ -2,10 +2,11 @@
 
 // "Câu giao tiếp": 60 câu, model + mẫu khung xương từ dữ liệu Look & Tell (Apache-2.0).
 import { useEffect, useState } from "react";
+import { asset } from "./base";
 
-export const PHRASE_MODEL = "/models/phrases/model.json";
-export const PHRASE_LABELS = "/models/phrases/labels.json";
-export const PHRASE_DEMO = "/models/phrases/demo.json";
+export const PHRASE_MODEL = asset("/models/phrases/model.json");
+export const PHRASE_LABELS = asset("/models/phrases/labels.json");
+export const PHRASE_DEMO = asset("/models/phrases/demo.json");
 
 /** Mỗi frame: 84 số = 2 tay × 21 điểm × (x, y), toạ độ ảnh 0..1; tay vắng = toàn 0 */
 export type DemoFrames = number[][];

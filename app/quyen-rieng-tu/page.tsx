@@ -43,8 +43,17 @@ export default function PrivacyPage() {
           </span>
         </section>
       ))}
+      <section className="card" style={{ gap: 4 }}>
+        <h2 className="sub">Liên hệ</h2>
+        <p className="bm" style={{ margin: 0, color: "var(--txt)" }}>
+          Câu hỏi về dữ liệu hoặc muốn báo lỗi, gửi thư tới:
+        </p>
+        <a href="mailto:quanggooner1996@gmail.com" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, color: "var(--acc)", fontWeight: 700, textDecoration: "underline", width: "fit-content" }}>
+          quanggooner1996@gmail.com
+        </a>
+      </section>
       <p className="sm" style={{ margin: 0 }}>
-        Mã nguồn: github.com/quang507/VSL
+        Mã nguồn: github.com/quang507/VSL · Cập nhật 10/10/2026
       </p>
     </main>
   );

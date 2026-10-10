@@ -14,5 +14,7 @@ export const MIDDLE_MCP = 9;
 export const CONFIDENCE_THRESHOLD = 0.6;
 
 // Đường dẫn model & nhãn (đặt trong public/)
-export const MODEL_URL = "/models/vsl/model.json";
-export const LABELS_URL = "/labels.json";
+import { asset } from "./base";
+
+export const MODEL_URL = asset("/models/vsl/model.json");
+export const LABELS_URL = asset("/labels.json");

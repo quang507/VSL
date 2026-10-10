@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useMemo } from "react";
 import Link from "next/link";
 import { Zap, CheckCircle2, Bookmark, Star, Lock, Trophy, Flame, Sprout, BookOpen, GraduationCap, Gem, Target, Flag, ArrowRight, Aperture, Settings } from "lucide-react";
@@ -54,11 +55,11 @@ export default function ProfilePage() {
   return (
     <main className="app app--nav" style={{ gap: 16 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="deco-cloud" src="/img/figma/cloud.webp" alt="" style={{ width: 130 }} />
+      <img className="deco-cloud" src={asset("/img/figma/cloud.webp")} alt="" style={{ width: 130 }} />
 
       <header className="row" style={{ gap: 16, marginTop: 8 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/figma/avatar.webp" alt="" style={{ width: 76, height: 76, borderRadius: 999, objectFit: "cover", flex: "none" }} />
+        <img src={asset("/img/figma/avatar.webp")} alt="" style={{ width: 76, height: 76, borderRadius: 999, objectFit: "cover", flex: "none" }} />
         <div className="col grow" style={{ gap: 2, minWidth: 0 }}>
           <h1 className="h1">{profile.name || "Bạn"}</h1>
           <span className="badge badge--s badge--acc">

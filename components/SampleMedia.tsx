@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useEffect, useRef, useState } from "react";
 import { Gauge, Repeat } from "lucide-react";
 import { sampleUrl } from "@/lib/theme";
@@ -48,7 +49,7 @@ export default function SampleMedia({ word, slow = false, aspect = "1 / 1", cont
       ) : (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="photo" src="/img/signer.png" alt="" />
+          <img className="photo" src={asset("/img/signer.png")} alt="" />
           <div style={{ position: "absolute", left: 12, right: 12, bottom: 12, background: "rgba(255,255,255,.92)", borderRadius: 14, padding: "10px 12px", fontWeight: 700, fontSize: 14 }}>
             Chưa có video mẫu cho “{word}”
           </div>

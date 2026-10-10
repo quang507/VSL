@@ -10,8 +10,7 @@ import { useContinuousSign } from "@/lib/useContinuousSign";
 import { MODEL_URL, LABELS_URL } from "@/lib/constants";
 import type { Prediction } from "@/lib/classifier";
 
-const PHRASE_MODEL = "/models/phrases/model.json";
-const PHRASE_LABELS = "/models/phrases/labels.json";
+import { PHRASE_MODEL, PHRASE_LABELS } from "@/lib/phrases";
 
 interface Item {
   top: Prediction[];

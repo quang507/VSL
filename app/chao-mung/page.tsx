@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, MapPin, Check, ShieldCheck } from "lucide-react";
@@ -36,24 +37,24 @@ export default function Onboarding() {
       <main className="app" style={{ padding: 0, gap: 0, minHeight: "100dvh", overflow: "hidden" }}>
         {/* Group / Background Decorations (302:9515): x −40, y −43.5, 541×300 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/figma/w-blobs.svg" alt="" width={541} height={300} style={{ position: "absolute", left: -40, top: -43.5, width: 541, height: 300, zIndex: -1, pointerEvents: "none" }} />
+        <img src={asset("/img/figma/w-blobs.svg")} alt="" width={541} height={300} style={{ position: "absolute", left: -40, top: -43.5, width: 541, height: 300, zIndex: -1, pointerEvents: "none" }} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingTop: "calc(env(safe-area-inset-top) + 34px)" }}>
           {/* Image / Brand Logo (302:9527): 120×82 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/img/logo.webp" alt="VSLV — Learn. Sign. Connect." style={{ width: 120, height: 82, objectFit: "contain", margin: "0 auto 4px", flex: "none" }} />
+          <img src={asset("/img/logo.webp")} alt="VSLV — Learn. Sign. Connect." style={{ width: 120, height: 82, objectFit: "contain", margin: "0 auto 4px", flex: "none" }} />
           {/* Group / Welcome Artwork (302:9473): khung 402×341, toạ độ theo % */}
           <div className="welcome-art" aria-hidden>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/figma/w-string.webp" alt="" style={{ left: "0%", top: "32.55%", width: "100%", height: "67.45%" }} />
+            <img src={asset("/img/figma/w-string.webp")} alt="" style={{ left: "0%", top: "32.55%", width: "100%", height: "67.45%" }} />
             <span style={{ left: "51%", top: "14.66%", width: "44.36%", height: "53.39%" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/figma/w-mascot.webp" alt="" style={{ width: "84.12%", height: "85.03%", transform: "rotate(11.72deg)" }} />
+              <img src={asset("/img/figma/w-mascot.webp")} alt="" style={{ width: "84.12%", height: "85.03%", transform: "rotate(11.72deg)" }} />
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/figma/w-presenter.webp" alt="" fetchPriority="high" style={{ left: "10.45%", top: "11.73%", width: "69.65%", height: "78.01%" }} />
+            <img src={asset("/img/figma/w-presenter.webp")} alt="" fetchPriority="high" style={{ left: "10.45%", top: "11.73%", width: "69.65%", height: "78.01%" }} />
             <span style={{ left: "50%", top: "0%", width: "27.78%", height: "32.5%" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/figma/w-greeting.webp" alt="" style={{ width: "80.6%", height: "80.08%", transform: "rotate(16.65deg)" }} />
+              <img src={asset("/img/figma/w-greeting.webp")} alt="" style={{ width: "80.6%", height: "80.08%", transform: "rotate(16.65deg)" }} />
             </span>
           </div>
         </div>

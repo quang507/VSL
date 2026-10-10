@@ -1,3 +1,4 @@
+import { asset } from "@/lib/base";
 import type { Metadata, Viewport } from "next";
 import { Baloo_2, Nunito } from "next/font/google";
 import "./globals.css";
@@ -20,10 +21,10 @@ export const metadata: Metadata = {
   title: "VSLV · Học ngôn ngữ ký hiệu",
   description:
     "Học ngôn ngữ ký hiệu Việt Nam — xem mẫu, bật camera, AI chấm đúng/sai ngay trên máy.",
-  manifest: "/manifest.json",
+  manifest: asset("/manifest.json"),
   applicationName: "VSLV",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "VSLV" },
-  icons: { icon: "/favicon.png", apple: "/icons/apple-touch-icon.png" },
+  icons: { icon: asset("/favicon.png"), apple: asset("/icons/apple-touch-icon.png") },
 };
 
 export const viewport: Viewport = {

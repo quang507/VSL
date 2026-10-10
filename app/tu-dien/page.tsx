@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X, CheckCircle2, ChevronRight, Camera, ArrowRight, AlarmClock, RotateCcw, Zap } from "lucide-react";
@@ -149,7 +150,7 @@ export default function Dictionary() {
   return (
     <main className="app app--nav" style={{ gap: 16 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="deco-cloud" src="/img/figma/cloud.webp" alt="" style={{ width: 130 }} />
+      <img className="deco-cloud" src={asset("/img/figma/cloud.webp")} alt="" style={{ width: 130 }} />
       <header className="row row--between">
         <div className="col" style={{ gap: 2 }}>
           <span className="bm" style={{ fontSize: 14 }}>

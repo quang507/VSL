@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useMemo } from "react";
 import Link from "next/link";
 import { Copy, ArrowRight, Camera, ChevronRight, Languages, RotateCcw, Zap } from "lucide-react";
@@ -35,7 +36,7 @@ export default function PracticeHub() {
   return (
     <main className="app app--nav" style={{ gap: 24 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="deco-cloud" src="/img/figma/cloud.webp" alt="" style={{ width: 130 }} />
+      <img className="deco-cloud" src={asset("/img/figma/cloud.webp")} alt="" style={{ width: 130 }} />
       <header className="row row--between">
         <div className="col" style={{ gap: 0 }}>
           <span className="bm" style={{ fontSize: 14 }}>
@@ -76,7 +77,7 @@ export default function PracticeHub() {
         </div>
         <div className="sticker-tilt" aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/img/mascot_cheer.png" alt="" style={{ width: 96, height: 98, objectFit: "contain" }} />
+          <img src={asset("/img/mascot_cheer.png")} alt="" style={{ width: 96, height: 98, objectFit: "contain" }} />
         </div>
       </section>
 
@@ -98,7 +99,7 @@ export default function PracticeHub() {
         <div className="col" style={{ flex: 1, minWidth: 0, gap: 12 }}>
           <Link href="/quiz" className="tile t-grn" style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/hand_yellow.png" alt="" style={{ width: 40, height: 40, objectFit: "contain", flex: "none" }} />
+            <img src={asset("/img/hand_yellow.png")} alt="" style={{ width: 40, height: 40, objectFit: "contain", flex: "none" }} />
             <span className="col" style={{ gap: 2, minWidth: 0 }}>
               <span className="h4">Đố vui</span>
               <span className="t-sub">8 từ · {learnedCount} đã thuộc</span>
@@ -125,7 +126,7 @@ export default function PracticeHub() {
           <span className="t-sub">59 câu ký liền mạch: chào hỏi, đi khám, mua sắm</span>
         </span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/presenter_peace.png" alt="" style={{ width: 112, height: 140, objectFit: "contain", flex: "none" }} />
+        <img src={asset("/img/presenter_peace.png")} alt="" style={{ width: 112, height: 140, objectFit: "contain", flex: "none" }} />
       </Link>
       <Link href="/dich" className="tile t-blu" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <span className="icon-circle" style={{ width: 48, height: 48, background: "var(--surface)", boxShadow: "var(--shadow-tile)" }}>
@@ -173,7 +174,7 @@ export default function PracticeHub() {
 
       <section className="tile t-org" style={{ flexDirection: "row", alignItems: "center", gap: 14 }} aria-label="Thử thách">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/img/target.png" alt="" style={{ width: 60, height: 60, objectFit: "contain", flex: "none" }} />
+        <img src={asset("/img/target.png")} alt="" style={{ width: 60, height: 60, objectFit: "contain", flex: "none" }} />
         <span className="col grow" style={{ gap: 6, minWidth: 0 }}>
           <span className="t-sub" style={{ color: "var(--org-txt)", fontWeight: 600 }}>
             Thử thách · huy hiệu Combo

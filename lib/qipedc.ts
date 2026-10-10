@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Region } from "@/lib/profile";
+import { asset } from "./base";
 
 export type Variants = Partial<Record<"B" | "T" | "N" | "_", string>>; // mã video theo miền
 
@@ -44,7 +45,7 @@ export const fold = (s: string) =>
 let cached: Promise<QEntry[]> | null = null;
 
 function load(): Promise<QEntry[]> {
-  cached ??= fetch("/data/qipedc.json")
+  cached ??= fetch(asset("/data/qipedc.json"))
     .then((r) => (r.ok ? r.json() : []))
     .catch(() => {
       cached = null;

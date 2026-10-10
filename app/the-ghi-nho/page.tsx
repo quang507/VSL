@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, RotateCw, XCircle, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -59,7 +60,7 @@ export default function Flashcards() {
       <main className="app app--center" style={{ gap: 18 }}>
         <div className="grow" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="photo" src="/img/celebrate.png" alt="" style={{ width: 260, borderRadius: 32, border: "6px solid #fff", boxShadow: "var(--shadow-soft)", transform: "rotate(-3deg)" }} />
+        <img className="photo" src={asset("/img/celebrate.png")} alt="" style={{ width: 260, borderRadius: 32, border: "6px solid #fff", boxShadow: "var(--shadow-soft)", transform: "rotate(-3deg)" }} />
         <Pill bg="var(--grn-soft)" fg="var(--grn-txt)" icon={CheckCircle2}>
           Hoàn thành {deck.length} thẻ
         </Pill>
@@ -109,7 +110,7 @@ export default function Flashcards() {
                 </Pill>
                 <span className="sm">Bạn còn nhớ ký hiệu của từ</span>
                 <span className="d3">{word}</span>
-                <Sticker src="/img/hand_yellow.png" size={120} rot={-8} />
+                <Sticker src={asset("/img/hand_yellow.png")} size={120} rot={-8} />
                 <span className="bm">Thử làm ký hiệu trong đầu (hoặc bằng tay), rồi lật thẻ để so.</span>
               </div>
             ) : (

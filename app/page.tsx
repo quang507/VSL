@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/base";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,9 +48,9 @@ export default function Home() {
   return (
     <main className="app app--nav" style={{ gap: 24 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="deco-cloud" src="/img/figma/cloud.webp" alt="" style={{ top: 0, right: -30 }} />
+      <img className="deco-cloud" src={asset("/img/figma/cloud.webp")} alt="" style={{ top: 0, right: -30 }} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="deco-wave" src="/img/figma/wave.svg" alt="" style={{ top: 640 }} />
+      <img className="deco-wave" src={asset("/img/figma/wave.svg")} alt="" style={{ top: 640 }} />
 
       <header className="row row--between">
         <div className="col" style={{ gap: 4, position: "relative" }}>
@@ -59,7 +60,7 @@ export default function Home() {
           </span>
           <h1 className="h1">Lộ trình học</h1>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="deco-sparkle" src="/img/figma/sparkle.svg" alt="" style={{ left: 140, top: 18 }} />
+          <img className="deco-sparkle" src={asset("/img/figma/sparkle.svg")} alt="" style={{ left: 140, top: 18 }} />
         </div>
         <Link href="/ho-so" className="badge badge--yel" style={{ height: 44, padding: "0 14px" }} aria-label={`Chuỗi ${streak} ngày, xem hồ sơ`}>
           Chuỗi {streak} ngày
