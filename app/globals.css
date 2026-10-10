@@ -46,8 +46,8 @@
   --nav-w: 0px;
   --nav-h: 96px;
 
-  --font-display: var(--font-baloo), "Baloo 2", system-ui, sans-serif;
-  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-display: "Baloo 2 Variable", "Baloo 2", system-ui, sans-serif;
+  --font-body: "Nunito Variable", "Nunito", system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
