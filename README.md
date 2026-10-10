@@ -4,6 +4,21 @@ Web app học ngôn ngữ ký hiệu VSL: bật camera → ký hiệu → AI ch�
 **Chạy 100% trong trình duyệt** (MediaPipe WASM + TensorFlow.js), không cần
 server → deploy Vercel miễn phí.
 
+## Dùng thử
+
+Bản web mới nhất: **https://quang507.github.io/VSL/** (mở bằng Safari trên iPhone hoặc Chrome trên Android, cho phép quyền camera).
+
+Tự động deploy bằng GitHub Actions mỗi khi push lên `main` hoặc `redesign-vslv` (`.github/workflows/pages.yml`).
+
+## Kiểm thử
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+Kế hoạch kiểm thử và kiểm định UX: [docs/TEST_PLAN.md](docs/TEST_PLAN.md).
+
 ## Công nghệ
 
 - **Next.js 14** (App Router)
