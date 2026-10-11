@@ -1,0 +1,7 @@
+{
+ "features": "face",
+ "arch": "cnn",
+ "nfeat": 136,
+ "videos": 2642,
+ "seq_len": 30
+}
