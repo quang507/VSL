@@ -1,9 +1,8 @@
 "use client";
 
-import CameraError from "@/components/CameraError";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, RotateCcw, SkipForward, Info, ChevronLeft } from "lucide-react";
+import { Camera, Eye, SkipForward, Info, ChevronLeft } from "lucide-react";
 import SignCapture from "@/components/SignCapture";
 import { CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { recordAttempt } from "@/lib/progress";
@@ -11,7 +10,6 @@ import { signal } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import { PHRASE_MODEL, PHRASE_LABELS, usePhrases, usePhraseDemo, phraseUrl } from "@/lib/phrases";
 import type { Prediction } from "@/lib/classifier";
-import CameraStage from "@/components/CameraStage";
 import SkeletonDemo from "@/components/SkeletonDemo";
 import Flash from "@/components/Flash";
 import { Bar, Btn, IconBtn, Ring, Segmented } from "@/components/ui";
@@ -29,6 +27,7 @@ function Inner() {
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
 
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
+  const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
 
   const onResult = (r: Prediction | null) => {
     setPred(r);
@@ -80,7 +79,7 @@ function Inner() {
           <div className="tile t-blu" style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
             <Info size={22} color="var(--acc)" aria-hidden style={{ flex: "none" }} />
             <span className="bm" style={{ color: "var(--txt)" }}>
-              Xanh dương và xanh lá là hai bàn tay của người ký mẫu (nhìn từ phía camera). Ký liền cả câu trong khoảng 2,5 giây.
+              Xanh dương và xanh lá là hai bàn tay của người ký mẫu (nhìn từ phía camera). {auto ? "Ký liền cả câu, đừng dừng tay giữa chừng: app chấm khi bạn dừng tay." : "Ký liền cả câu trong khoảng 2,5 giây."}
             </span>
           </div>
           <Btn icon={Camera} onClick={() => setStep("practice")}>

@@ -12,6 +12,7 @@
     "cap:ios": "cap open ios",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test a11y",
+    "eval:auto": "node scripts/eval-auto-capture.mjs",
     "prebuild": "node scripts/copy-mediapipe.mjs",
     "predev": "node scripts/copy-mediapipe.mjs",
     "store:screenshots": "node scripts/store-screenshots.mjs",

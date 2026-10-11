@@ -1,9 +1,8 @@
 "use client";
 
-import CameraError from "@/components/CameraError";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, RotateCcw, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
+import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
 import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
 import { recordAttempt, loadProgress, countLearned } from "@/lib/progress";
 import { findLesson } from "@/lib/lessons";
@@ -77,6 +76,8 @@ function PracticeInner() {
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
   // Ký đúng ở chế độ tự chấm → đếm 3 giây rồi tự sang từ tiếp theo (huỷ được)
   const adv = useAutoAdvance(auto && correct && !!lesson && !!nextWord, () => nextWord && goTo(nextWord, true));
+  // Bấm "Ở lại từ này" là muốn tập tiếp → mở lại camera chấm, không khoá nữa
+  const stayed = auto && correct && !!lesson && !!nextWord && !adv.counting;
   const confPct = pred ? Math.round(pred.confidence * 100) : 0;
   const badge = BADGES.find((b) => b.id === newBadge);
 
@@ -150,7 +151,7 @@ function PracticeInner() {
             modelUrl={MODEL_URL}
             labelsUrl={LABELS_URL}
             onResult={onResult}
-            locked={correct && !!lesson}
+            locked={correct && !!lesson && !stayed}
             attempted={done}
             errorNote="Bạn vẫn xem được video mẫu."
             corner={target ? <LoopVideo word={target} label={`Video mẫu “${target}”`} style={{ width: "100%", height: "100%", borderRadius: 0 }} /> : undefined}

@@ -27,7 +27,7 @@ interface Props {
 
 /**
  * Khung camera + chấm ký hiệu, hai chế độ theo Cài đặt → "Tự chấm khi ký":
- *  - Tự chấm (mặc định): không cần bấm gì. App thấy tay chuyển động thì ghi, tay dừng ~0,6 giây
+ *  - Tự chấm (mặc định): không cần bấm gì. App thấy tay chuyển động thì ghi, tay dừng ~0,5 giây
  *    hoặc hạ xuống thì chấm, rồi tự chờ lần ký tiếp theo.
  *  - Bấm nút: đếm ngược 3-2-1 rồi ghi 2,5 giây (cho người muốn có thời gian vào vị trí).
  * Mỗi chế độ là một component riêng để chỉ mở MỘT luồng camera.
@@ -51,7 +51,7 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
   const [unclear, setUnclear] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
-  const { videoRef, canvasRef, status, handsVisible, hint, modelReady, cameraError, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
+  const { videoRef, canvasRef, status, handsVisible, hint, modelReady, modelFailed, cameraError, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
     if (lockedRef.current) return;
     const best = top[0];
     if (!best || best.confidence < MIN_CONF) {
@@ -73,7 +73,9 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
     ? ""
     : status === "loading"
       ? "Đang mở camera…"
-      : !modelReady
+      : modelFailed
+        ? "Chưa tải được bộ chấm nên chưa chấm điểm. Khung xương tay vẫn hoạt động."
+        : !modelReady
         ? "Đang tải bộ chấm…"
         : locked
           ? ""

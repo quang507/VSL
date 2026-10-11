@@ -3,7 +3,7 @@
 import { asset } from "@/lib/base";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { X, Camera, ArrowRight, SkipForward, RotateCcw, Info } from "lucide-react";
+import { X, ArrowRight, SkipForward, RotateCcw } from "lucide-react";
 import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
 import SignCapture from "@/components/SignCapture";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
@@ -12,7 +12,6 @@ import { recordAttempt, loadProgress, dueWords } from "@/lib/progress";
 import { signal } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
-import CameraStage from "@/components/CameraStage";
 import Flash from "@/components/Flash";
 import { Bar, Btn, IconBtn, Pill, Ring, Sticker } from "@/components/ui";
 

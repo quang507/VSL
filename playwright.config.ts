@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
-  workers: 6, // nhiều hơn thì các test camera (MediaPipe chạy CPU) bị nghẽn
+  workers: 4, // nhiều hơn thì test camera (MediaPipe chạy CPU) bị nghẽn và WebKit dễ hết bộ nhớ
   retries: 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "tests/report" }], ["json", { outputFile: "tests/report/results.json" }]],
   use: {
@@ -26,6 +26,8 @@ export default defineConfig({
     timeout: 60_000,
   },
   projects: [
+    // Logic thuần (không mở trình duyệt): bộ tách động tác của chế độ tự chấm
+    { name: "logic", testMatch: /.*\.unit\.ts/ },
     // iPhone Safari (WebKit) — nền tảng chính của người dùng
     { name: "iphone-webkit", use: { ...devices["iPhone 13"] } },
     // Android Chrome; camera giả để kiểm tra luồng luyện tập

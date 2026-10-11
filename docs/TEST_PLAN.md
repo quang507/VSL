@@ -104,6 +104,21 @@ Luôn đo bằng `retrain_clean.py`: chia theo buổi quay để người ký tr
 
 Hiện tại chưa đạt ngưỡng phát hành rộng. Cách nâng: thu thêm dữ liệu từ nhiều người ký (xem mục 6.4).
 
+### Chế độ tự chấm (không bấm nút)
+
+Hai lớp kiểm tra, vì camera giả mặc định của Playwright không có bàn tay nào:
+
+1. `tests/e2e/segmenter.unit.ts` (chạy cùng `npm run test:e2e`, project `logic`): bộ tách động tác với chuyển động giả lập ở 5, 12, 30, 60 và 120 khung hình/giây. Kiểm tra: ký xong thì chấm đúng một lần, tay đặt yên không bị chấm, để tay trong khung lâu rồi mới ký không bị cắt giữa chừng, ký hiệu chỉ cử động ngón vẫn được chấm.
+2. `npm run eval:auto`: phát video người ký thật vào camera giả (`scripts/make_y4m.py`, cần Python có `opencv-python`), mở màn luyện và không bấm gì, rồi đếm số lần app chấm và số lần đúng. Chạy tay trước mỗi bản phát hành, không chạy trên CI.
+
+| Lần đo 11/10/2026 (12 từ, 2 tình huống) | Trước khi sửa | Sau khi sửa |
+|---|---|---|
+| Tỉ lệ lần chấm đúng, máy thường (~22 khung hình/giây) | 54% (42/78) | 64% (49/77) |
+| Số từ có ít nhất một lần đúng (ký ngay / chờ lâu) | 9 và 8 trên 12 | 10 và 9 trên 12 |
+| Máy rất yếu (~2,5 khung hình/giây) | không chấm lần nào | chấm được, 71% đúng (22/31, 4 từ) |
+
+Video mẫu nằm trong tập train, nên đây là kiểm tra khâu tách động tác chứ không phải độ chính xác với người lạ. Mức trần khi đưa nguyên clip vào model qua bộ dò tay của app là 77/100 từ, và bộ tách động tác đạt 76 đến 79/100 trong mô phỏng. Phần còn lại chưa kiểm được bằng máy: người thật ký trước camera thật (mục 6.4).
+
 ## 5. Tầng 2 · Đo hành vi thực tế (chưa bật)
 
 App hiện **không** gắn công cụ đo nào, và trang Quyền riêng tư đang cam kết như vậy. Muốn bật phải làm đủ ba việc trước:
