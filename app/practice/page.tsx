@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
-import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
+import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import { recordAttempt, loadProgress, countLearned } from "@/lib/progress";
 import { findLesson } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
@@ -150,6 +150,7 @@ function PracticeInner() {
           <SignCapture
             modelUrl={MODEL_URL}
             labelsUrl={LABELS_URL}
+            features={WORD_FEATURES}
             onResult={onResult}
             locked={correct && !!lesson && !stayed}
             attempted={done}

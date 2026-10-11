@@ -94,15 +94,23 @@ npx lighthouse http://localhost:3001/tu-dien/ --form-factor=mobile --only-catego
 
 ### Độ chính xác nhận diện (`training/eval/`)
 
-Luôn đo bằng `retrain_clean.py`: chia theo buổi quay để người ký trong phần kiểm tra không có trong phần train. **Không dùng cách chia ngẫu nhiên**, vì dữ liệu có bản sao và cho ra số ảo (88% thay vì 64%).
+Luôn đo trên **người ký chưa gặp**: chia 5 phần theo buổi quay (`try_models.py`, cùng cách chia với `retrain_clean.py`). **Không dùng cách chia ngẫu nhiên**, vì dữ liệu có bản sao và cho ra số ảo (88% thay vì 64%).
 
-| Chỉ số (người ký chưa gặp) | Hiện tại | Ngưỡng để phát hành rộng |
-|---|---|---|
-| Đoán đúng từ | 64% | từ 80% |
-| Đúng trong 3 từ đầu | 80% | từ 92% |
-| App báo "Đúng" khi ký đúng | 57% | từ 75% |
+Model từ đơn hiện tại (12/10/2026): đặc trưng `face` + mạng `cnn`, xuất bằng `try_models.py --feat face --arch cnn --final`.
+Mỗi frame 136 số: hình dạng hai bàn tay (126, như cũ) + vị trí cổ tay và đầu ngón giữa so với **mặt** (8) + vector giữa hai cổ tay (2). Mặt lấy từ BlazeFace (230 KB, `public/mediapipe/blaze_face_short_range.tflite`). Lý do: ngôn ngữ ký hiệu phân biệt từ bằng vị trí tay so với cơ thể, model cũ không nhìn thấy điều đó.
 
-Hiện tại chưa đạt ngưỡng phát hành rộng. Cách nâng: thu thêm dữ liệu từ nhiều người ký (xem mục 6.4).
+| Chỉ số (người ký chưa gặp, 2.160 video) | Model cũ (LSTM, chỉ tay) | Model mới (CNN, tay + mặt) | Ngưỡng phát hành rộng |
+|---|---|---|---|
+| Đoán đúng từ | 63,5% | 79,7% | từ 80% |
+| Đúng trong 3 từ đầu | 80,6% | 89,8% | từ 92% |
+| App báo "Đúng" khi ký đúng (ngưỡng app) | 57% (ngưỡng 0,6) | 71% (ngưỡng 0,4) | từ 75% |
+| Báo "Đúng" dù ký sai (trên tổng số lần ký) | 19% | 8% | dưới 10% |
+
+Các cấu hình đã so (đúng từ, người ký lạ): chỉ tay 63,5% · + quỹ đạo tay 67,1% · + vai và mũi (PoseLandmarker 5,8 MB) 69,8% · + mặt 70,9% (đều LSTM) · tay + mặt với BiGRU 79,2% · tay + mặt với CNN 79,7% (train nhanh gấp 4, model 1,4 MB). Bảng đầy đủ: `python training/eval/try_models.py --out .eval/exp --summary`. Ngưỡng tin cậy chọn bằng `--calibrate face+cnn`.
+
+Đặc trưng tính trong app (`lib/landmarks.ts`) được đối chiếu với Python bằng `tests/e2e/features.unit.ts` (lệch dưới 1e-4). Một lỗi tìm ra cùng đợt: video train đều vuông, camera thật thì không, app nay nhân y với cao/rộng trước khi chuẩn hoá (16:9 từng mất 17 điểm %).
+
+Chưa đạt hẳn ngưỡng phát hành rộng (thiếu 0,3 điểm đúng từ, 6 điểm "báo Đúng"). Cách nâng tiếp: thu thêm dữ liệu từ nhiều người ký (mục 6.4).
 
 ### Chế độ tự chấm (không bấm nút)
 
@@ -116,8 +124,9 @@ Hai lớp kiểm tra, vì camera giả mặc định của Playwright không có
 | Tỉ lệ lần chấm đúng, máy thường (~22 khung hình/giây) | 54% (42/78) | 64% (49/77) |
 | Số từ có ít nhất một lần đúng (ký ngay / chờ lâu) | 9 và 8 trên 12 | 10 và 9 trên 12 |
 | Máy rất yếu (~2,5 khung hình/giây) | không chấm lần nào | chấm được, 71% đúng (22/31, 4 từ) |
+| Model mới (tay + mặt, CNN, ngưỡng 0,4), máy thường, đo 12/10/2026 | | 66% (49/74); từ có ít nhất một lần đúng: 10 và 8 trên 12 |
 
-Video mẫu nằm trong tập train, nên đây là kiểm tra khâu tách động tác chứ không phải độ chính xác với người lạ. Mức trần khi đưa nguyên clip vào model qua bộ dò tay của app là 77/100 từ, và bộ tách động tác đạt 76 đến 79/100 trong mô phỏng. Phần còn lại chưa kiểm được bằng máy: người thật ký trước camera thật (mục 6.4).
+Video mẫu nằm trong tập train, nên đây là kiểm tra khâu tách động tác chứ không phải độ chính xác với người lạ. Model mới nhận đúng nhãn nhiều hơn trên các đoạn này (~80% lần chấm) nhưng độ tin cậy thấp hơn model cũ, nên tỉ lệ qua ngưỡng chỉ tương đương; số đo quyết định vẫn là bảng người ký lạ ở trên. Mức trần khi đưa nguyên clip vào model qua bộ dò tay của app là 77/100 từ, và bộ tách động tác đạt 76 đến 79/100 trong mô phỏng. Phần còn lại chưa kiểm được bằng máy: người thật ký trước camera thật (mục 6.4).
 
 ## 5. Tầng 2 · Đo hành vi thực tế (chưa bật)
 

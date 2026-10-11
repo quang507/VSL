@@ -1,7 +1,7 @@
 // Load model TF.js + dự đoán nhãn từ chuỗi landmark.
 // Hỗ trợ nhiều model (từ đơn, câu giao tiếp…) — mỗi model nạp 1 lần rồi dùng lại.
 import * as tf from "@tensorflow/tfjs";
-import { MODEL_URL, LABELS_URL, SEQ_LEN, FEATURES_PER_FRAME } from "./constants";
+import { MODEL_URL, LABELS_URL, SEQ_LEN } from "./constants";
 
 export interface Prediction {
   label: string;
@@ -24,7 +24,8 @@ export async function loadModel(modelUrl: string, labelsUrl: string): Promise<Lo
       const labels: string[] = await res.json();
       // Khởi động: lần predict đầu trên WebGL mất vài giây (biên dịch shader).
       // Chạy trước 1 lần với input rỗng để lúc người dùng ký xong có kết quả ngay.
-      const zero = tf.zeros([1, SEQ_LEN, FEATURES_PER_FRAME]);
+      const nfeat = Number(m.inputs[0].shape[2]);
+      const zero = tf.zeros([1, SEQ_LEN, nfeat]);
       const warm = m.predict(zero) as tf.Tensor;
       await warm.data();
       zero.dispose();
@@ -43,7 +44,9 @@ export async function loadModel(modelUrl: string, labelsUrl: string): Promise<Lo
 export async function predictTopK(modelUrl: string, sequence: Float32Array, k = 3): Promise<Prediction[]> {
   const l = ready.get(modelUrl);
   if (!l) throw new Error("Model chưa load");
-  const input = tf.tensor(sequence, [1, SEQ_LEN, FEATURES_PER_FRAME]);
+  const nfeat = Number(l.model.inputs[0].shape[2]);
+  if (sequence.length !== SEQ_LEN * nfeat) throw new Error(`Model cần ${nfeat} số/frame, nhận ${sequence.length / SEQ_LEN}`);
+  const input = tf.tensor(sequence, [1, SEQ_LEN, nfeat]);
   const output = l.model.predict(input) as tf.Tensor;
   const probs = (await output.data()) as Float32Array;
   input.dispose();

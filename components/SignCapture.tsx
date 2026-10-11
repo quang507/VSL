@@ -9,10 +9,13 @@ import { useSignPractice } from "@/lib/useSignPractice";
 import { useContinuousSign } from "@/lib/useContinuousSign";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
+import type { FeatureKind } from "@/lib/constants";
 
 interface Props {
   modelUrl: string;
   labelsUrl: string;
+  /** Đặc trưng model cần ("face" = cần thấy cả mặt trong khung) */
+  features?: FeatureKind;
   /** Kết quả một lần ký. null = không thấy tay (chỉ ở chế độ bấm nút). */
   onResult: (pred: Prediction | null) => void;
   /** Ngừng chấm (đã đúng, hoặc đang chờ sang câu khác). */
@@ -40,9 +43,9 @@ export default function SignCapture(props: Props) {
 }
 
 const COOLDOWN_MS = 1500; // nghỉ sau mỗi lần chấm để đọc kết quả và hạ tay
-const MIN_CONF = 0.35; // dưới mức này coi là cử động vu vơ, không tính là một lần ký
+const MIN_CONF = 0.25; // dưới mức này coi là cử động vu vơ, không tính là một lần ký (model face+cnn có label smoothing nên độ tin cậy thấp hơn model cũ)
 
-function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner }: Props) {
+function AutoCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked, errorNote, corner }: Props) {
   const cb = useRef(onResult);
   cb.current = onResult;
   const lockedRef = useRef(!!locked);
@@ -51,7 +54,7 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
   const [unclear, setUnclear] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
-  const { videoRef, canvasRef, status, handsVisible, hint, modelReady, modelFailed, cameraError, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
+  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
     if (lockedRef.current) return;
     const best = top[0];
     if (!best || best.confidence < MIN_CONF) {
@@ -63,7 +66,7 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
     setCooling(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCooling(false), COOLDOWN_MS);
-  });
+  }, features);
 
   useEffect(() => setPaused(!!locked || cooling), [locked, cooling, setPaused]);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -89,7 +92,7 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
 
   return (
     <>
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={0} handsVisible={handsVisible} hint={hint} error={!!cameraError} corner={corner} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={0} handsVisible={handsVisible} hint={features === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} corner={corner} />
       {cameraError && <CameraError note={errorNote} />}
       {msg && (
         <p className="row" role="status" aria-live="polite" style={{ margin: 0, gap: 8, justifyContent: "center", textAlign: "center", fontWeight: 700, color: "var(--ink)" }}>
@@ -101,8 +104,8 @@ function AutoCapture({ modelUrl, labelsUrl, onResult, locked, errorNote, corner 
   );
 }
 
-function ManualCapture({ modelUrl, labelsUrl, onResult, locked, attempted, errorNote, manualLabel, corner }: Props) {
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice(modelUrl, labelsUrl);
+function ManualCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked, attempted, errorNote, manualLabel, corner }: Props) {
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, faceSeen, modelReady, cameraError, start } = useSignPractice(modelUrl, labelsUrl, features);
   const [noHands, setNoHands] = useState(false);
   const busy = phase === "loading" || phase === "countdown" || phase === "recording";
 
@@ -115,7 +118,7 @@ function ManualCapture({ modelUrl, labelsUrl, onResult, locked, attempted, error
 
   return (
     <>
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} corner={corner} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={features === "face" && !faceSeen && phase !== "loading" ? "noface" : hint} error={!!cameraError} corner={corner} />
       {cameraError && <CameraError note={errorNote} />}
       {!modelReady && !cameraError && phase !== "loading" && (
         <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

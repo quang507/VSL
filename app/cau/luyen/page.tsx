@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, SkipForward, Info, ChevronLeft } from "lucide-react";
 import SignCapture from "@/components/SignCapture";
-import { CONFIDENCE_THRESHOLD } from "@/lib/constants";
+import { PHRASE_CONFIDENCE_THRESHOLD as CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { recordAttempt } from "@/lib/progress";
 import { signal } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";

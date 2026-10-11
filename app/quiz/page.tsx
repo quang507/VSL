@@ -4,7 +4,7 @@ import { asset } from "@/lib/base";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { X, ArrowRight, SkipForward, RotateCcw } from "lucide-react";
-import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
+import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import SignCapture from "@/components/SignCapture";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import { useLabels } from "@/lib/useLabels";
@@ -175,7 +175,7 @@ function QuizInner() {
         ))}
       </div>
 
-      <SignCapture modelUrl={MODEL_URL} labelsUrl={LABELS_URL} onResult={onResult} locked={graded} manualLabel="Ký hiệu" errorNote="Bạn có thể bỏ qua câu này." />
+      <SignCapture modelUrl={MODEL_URL} labelsUrl={LABELS_URL} features={WORD_FEATURES} onResult={onResult} locked={graded} manualLabel="Ký hiệu" errorNote="Bạn có thể bỏ qua câu này." />
 
       {pred && (
         <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>

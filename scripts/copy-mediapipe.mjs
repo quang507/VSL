@@ -18,9 +18,13 @@ for (const f of files) {
   copyFileSync(join(src, f), join(dst, f));
   bytes += statSync(join(dst, f)).size;
 }
-const model = join(root, "public", "mediapipe", "hand_landmarker.task");
-if (!existsSync(model)) {
-  console.error("Thiếu public/mediapipe/hand_landmarker.task (model bàn tay, ~7,8 MB).");
-  process.exit(1);
+let modelBytes = 0;
+for (const [f, what] of [["hand_landmarker.task", "model bàn tay, ~7,8 MB"], ["blaze_face_short_range.tflite", "model dò mặt, ~0,2 MB"]]) {
+  const model = join(root, "public", "mediapipe", f);
+  if (!existsSync(model)) {
+    console.error(`Thiếu public/mediapipe/${f} (${what}).`);
+    process.exit(1);
+  }
+  modelBytes += statSync(model).size;
 }
-console.log(`MediaPipe: đã chép ${files.length} file WASM (${(bytes / 1e6).toFixed(1)} MB) + model ${(statSync(model).size / 1e6).toFixed(1)} MB`);
+console.log(`MediaPipe: đã chép ${files.length} file WASM (${(bytes / 1e6).toFixed(1)} MB) + model ${(modelBytes / 1e6).toFixed(1)} MB`);

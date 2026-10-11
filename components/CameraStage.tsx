@@ -79,6 +79,7 @@ const HINTS: Record<Hint, { text: string; icon: typeof Hand; bg: string; fg: str
   edge: { text: "Tay sắp ra ngoài khung", icon: MoveHorizontal, bg: "var(--yel)", fg: "var(--yel-txt)" },
   close: { text: "Lùi ra sau một chút", icon: ZoomOut, bg: "var(--yel)", fg: "var(--yel-txt)" },
   far: { text: "Tiến lại gần hơn", icon: ZoomIn, bg: "var(--yel)", fg: "var(--yel-txt)" },
+  noface: { text: "Để cả mặt vào khung", icon: ScanFace, bg: "var(--yel)", fg: "var(--yel-txt)" },
   ok: { text: "Tốt rồi", icon: Hand, bg: "var(--grn-soft)", fg: "var(--grn-txt)" },
 };
 

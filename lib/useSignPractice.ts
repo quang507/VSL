@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getHandLandmarker, detectHands } from "./handLandmarker";
+import { getHandLandmarker, detectHands, getFaceDetector, detectFace } from "./handLandmarker";
+import { createFaceTracker } from "./faceTracker";
+import type { FeatureKind } from "./constants";
 import { loadModel, predictTopK, type Prediction } from "./classifier";
 import { MODEL_URL, LABELS_URL } from "./constants";
 import { buildFrameFeatures, resampleSequence, type HandResult } from "./landmarks";
@@ -13,7 +15,7 @@ const RECORD_MS = 2500; // thời gian quay mỗi lần ký hiệu
 const MIN_FRAMES = 6; // ít hơn số frame có tay này thì coi như "không thấy tay"
 
 /** Gợi ý tư thế hiển thị trực tiếp trên khung camera */
-export type Hint = "none" | "edge" | "close" | "far" | "ok";
+export type Hint = "none" | "edge" | "close" | "far" | "ok" | "noface";
 
 export function computeHint(hands: HandResult[]): Hint {
   if (!hands.length) return "none";
@@ -35,7 +37,7 @@ export function computeHint(hands: HandResult[]): Hint {
 }
 
 /** modelUrl/labelsUrl mặc định = model 100 từ đơn; truyền model khác cho "Câu giao tiếp" */
-export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL) {
+export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL, features: FeatureKind = "hands") {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -44,6 +46,8 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   const rafRef = useRef(0);
   const handsCountRef = useRef(-1);
   const hintRef = useRef<Hint>("none");
+  const faceSeenRef = useRef(true);
+  const [faceSeen, setFaceSeen] = useState(true);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [count, setCount] = useState(3);
@@ -70,6 +74,8 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
         }
 
         const hl = await getHandLandmarker();
+        const fd = features === "face" ? await getFaceDetector() : null;
+        const faces = createFaceTracker();
         // Model có thể chưa tồn tại (chưa train) -> KHÔNG được chặn UI
         let ok = false;
         try {
@@ -97,8 +103,17 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
               canvas.width = v.videoWidth;
               canvas.height = v.videoHeight;
             }
-            const hands = detectHands(hl, v, performance.now());
+            const now = performance.now();
+            const hands = detectHands(hl, v, now);
             if (ctx && canvas) drawHands(ctx, hands, canvas.width, canvas.height);
+            if (fd) {
+              const f = detectFace(fd, v, now, hands);
+              if (f && !f.covered) faces.push(f.face);
+              if (!!f !== faceSeenRef.current) {
+                faceSeenRef.current = !!f;
+                setFaceSeen(!!f);
+              }
+            }
             if (hands.length !== handsCountRef.current) {
               handsCountRef.current = hands.length;
               setHandsVisible(hands.length);
@@ -109,7 +124,7 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
               setHint(h);
             }
             if (recordingRef.current && hands.length > 0) {
-              framesRef.current.push(buildFrameFeatures(hands));
+              framesRef.current.push(buildFrameFeatures(hands, v.videoHeight / v.videoWidth, fd ? faces.ref() : undefined));
             }
           }
           rafRef.current = requestAnimationFrame(loop);
@@ -172,6 +187,7 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
     count,
     handsVisible,
     hint,
+    faceSeen,
     modelReady,
     cameraError,
     start,

@@ -7,7 +7,7 @@ import { Volume2, Maximize2, Trash2, Pause, Play, X, Info, Hand, Loader2, FlaskC
 import CameraStage from "@/components/CameraStage";
 import { Btn, Dialog, IconBtn, Pill, Segmented, TopBar } from "@/components/ui";
 import { useContinuousSign } from "@/lib/useContinuousSign";
-import { MODEL_URL, LABELS_URL } from "@/lib/constants";
+import { MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import type { Prediction } from "@/lib/classifier";
 
 import { PHRASE_MODEL, PHRASE_LABELS } from "@/lib/phrases";
@@ -31,13 +31,14 @@ export default function Translate() {
       .catch(() => setHasPhrases(false));
   }, []);
 
-  const { videoRef, canvasRef, status, handsVisible, hint, modelReady, cameraError, paused, setPaused } = useContinuousSign(
+  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, cameraError, paused, setPaused } = useContinuousSign(
     mode === "word" ? MODEL_URL : PHRASE_MODEL,
     mode === "word" ? LABELS_URL : PHRASE_LABELS,
     (top) => {
       const t = top.filter((p) => !UNCLEAR_PHRASES.has(p.label));
       if (t.length) setItems((xs) => [...xs, { top: t, pick: 0 }]);
-    }
+    },
+    mode === "word" ? WORD_FEATURES : "hands"
   );
 
   const text = items.map((it) => it.top[it.pick]?.label ?? "").join(" ");
@@ -101,7 +102,7 @@ export default function Translate() {
         ]}
       />
 
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={status === "loading" ? "loading" : "ready"} count={0} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={status === "loading" ? "loading" : "ready"} count={0} handsVisible={handsVisible} hint={mode === "word" && WORD_FEATURES === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} />
       <div className="row" style={{ justifyContent: "center" }}>
         {statusPill}
       </div>

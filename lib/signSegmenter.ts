@@ -5,6 +5,7 @@
 // Ngưỡng đo từ video mẫu (scripts/eval-auto-capture.mjs): tay đặt yên dao động ≤ 0,1 đơn vị/giây,
 // tay đang ký ≥ 0,15. Có ký hiệu chỉ cử động ngón (cổ tay đứng im) nên phải xét cả đầu ngón tay.
 import { buildFrameFeatures, type HandResult } from "./landmarks";
+import type { FaceRef } from "./faceTracker";
 
 export const SEG = {
   WINDOW_MS: 200, // so với vị trí ~0,2 giây trước: đủ dài để nhiễu của bộ dò tay không bị tính là chuyển động
@@ -34,7 +35,7 @@ function dist(a: number[], b: number[]) {
 
 export interface Segmenter {
   /** Đưa vào một frame camera. Trả về chuỗi đặc trưng khi vừa chốt xong một lần ký, ngược lại null. */
-  push(now: number, hands: HandResult[]): Float32Array[] | null;
+  push(now: number, hands: HandResult[], aspect?: number, face?: FaceRef | null): Float32Array[] | null;
   /** Đang có động tác dở dang (để hiện "Đang xem bạn ký"). */
   readonly active: boolean;
   reset(): void;
@@ -109,7 +110,7 @@ export function createSegmenter(): Segmenter {
       return moveMs > 0;
     },
     reset,
-    push(now, hands) {
+    push(now, hands, aspect = 1, face) {
       if (!hands.length) {
         if (seg.length && now - lastHand > SEG.GONE_MS) return cut();
         return null;
@@ -118,7 +119,7 @@ export function createSegmenter(): Segmenter {
       const moving = speed(now, hands) > SEG.STILL_SPEED;
       lastT = now;
       lastHand = now;
-      seg.push({ f: buildFrameFeatures(hands), moving });
+      seg.push({ f: buildFrameFeatures(hands, aspect, face), moving });
       if (moving) {
         if (!moveStart) moveStart = now;
         moveMs += dt;
