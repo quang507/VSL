@@ -93,32 +93,57 @@ test("N7 · Thanh điều hướng đi được 4 tab; nút tìm mở ô tìm", 
   }
 });
 
-test("N8 · Luyện với camera: thấy khung camera và gợi ý đưa tay vào khung", async ({ page, browserName }) => {
-  test.skip(browserName !== "chromium" || test.info().project.name !== "android-chromium", "camera giả chỉ có trên Chromium Android");
-  await seedUser(page);
-  await page.goto("/practice/?word=Ch%C3%A0o&lesson=chao-hoi");
-  await page.getByRole("button", { name: /Tập trước camera/ }).click();
-  await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
-});
+// Ba test camera chạy bộ nhận diện tay thật (nặng CPU) → chạy lần lượt, cho thêm thời gian.
+test.describe("camera", () => {
+  test.describe.configure({ mode: "serial", timeout: 120_000 });
 
-test("N9 · Không cần mạng ngoài: chặn mọi máy chủ khác, vẫn học và luyện camera được", async ({ page }) => {
-  test.skip(test.info().project.name !== "android-chromium", "cần camera giả");
-  const external: string[] = [];
-  await page.route("**/*", (route) => {
-    const u = new URL(route.request().url());
-    if (u.hostname === "localhost") return route.continue();
-    external.push(u.hostname);
-    return route.abort();
+  test("N8 · Luyện với camera: thấy khung camera và gợi ý đưa tay vào khung", async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium" || test.info().project.name !== "android-chromium", "camera giả chỉ có trên Chromium Android");
+    await seedUser(page);
+    await page.goto("/practice/?word=Ch%C3%A0o&lesson=chao-hoi");
+    await page.getByRole("button", { name: /Tập trước camera/ }).click();
+    await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
   });
-  await seedUser(page);
-  await page.goto("/");
-  await page.getByRole("region", { name: "Tiếp tục học" }).getByRole("link", { name: /Học tiếp/ }).click();
-  await expect(page.locator(".media video")).toHaveJSProperty("readyState", 4);
-  await page.getByRole("button", { name: /Tập trước camera/ }).click();
-  // Bộ nhận diện tay và model đều nằm trong app
-  await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("button", { name: "Bắt đầu ký" })).toBeEnabled({ timeout: 20_000 });
-  expect(external, "app không được gọi máy chủ ngoài ở luồng học chính").toEqual([]);
+
+  test("N9 · Không cần mạng ngoài: chặn mọi máy chủ khác, vẫn học và luyện camera được", async ({ page }) => {
+    test.skip(test.info().project.name !== "android-chromium", "cần camera giả");
+    const external: string[] = [];
+    await page.route("**/*", (route) => {
+      const u = new URL(route.request().url());
+      if (u.hostname === "localhost") return route.continue();
+      external.push(u.hostname);
+      return route.abort();
+    });
+    await seedUser(page);
+    await page.goto("/");
+    await page.getByRole("region", { name: "Tiếp tục học" }).getByRole("link", { name: /Học tiếp/ }).click();
+    await expect(page.locator(".media video")).toHaveJSProperty("readyState", 4);
+    await page.getByRole("button", { name: /Tập trước camera/ }).click();
+    // Bộ nhận diện tay và model đều nằm trong app
+    await expect(page.getByText(/Đưa tay vào khung|Tay sắp ra ngoài/)).toBeVisible({ timeout: 20_000 });
+    // Chế độ tự chấm: không có nút bấm, app chờ người dùng ký
+    await expect(page.getByRole("status").filter({ hasText: "app tự chấm" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: "Bắt đầu ký" })).toHaveCount(0);
+    await expect(page.getByLabel(/^Video mẫu “/)).toBeVisible(); // video mẫu thu nhỏ ở góc khung camera
+    expect(external, "app không được gọi máy chủ ngoài ở luồng học chính").toEqual([]);
+  });
+
+  test("N10 · Tắt tự chấm trong Cài đặt thì quay về nút bấm có đếm ngược", async ({ page }) => {
+    test.skip(test.info().project.name !== "android-chromium", "cần camera giả");
+    await seedUser(page);
+    await page.goto("/cai-dat/");
+    const sw = page.getByRole("switch", { name: "Tự chấm khi ký" });
+    await expect(sw).toHaveAttribute("aria-checked", "true"); // mặc định bật
+    await sw.click();
+    await expect(sw).toHaveAttribute("aria-checked", "false");
+    await page.goto("/practice/?word=Ch%C3%A0o&lesson=chao-hoi");
+    await page.getByRole("button", { name: /Tập trước camera/ }).click();
+    const btn = page.getByRole("button", { name: "Bắt đầu ký" });
+    await expect(btn).toBeEnabled({ timeout: 20_000 });
+    await btn.click();
+    await expect(page.getByRole("button", { name: /Chuẩn bị… \d/ })).toBeVisible();
+    await expect(page.getByText(/Không thấy tay trong lúc ghi/)).toBeVisible({ timeout: 15_000 });
+  });
 });
 
 for (const w of [320, 390, 768, 1280]) {

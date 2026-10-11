@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check } from "lucide-react";
+import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check, Sparkles } from "lucide-react";
 import { Btn, Dialog, IconCircle, Segmented, Toggle, TopBar } from "@/components/ui";
 import { REGIONS, useProfile, resetProfile } from "@/lib/profile";
 import { useProgress } from "@/lib/useProgress";
@@ -62,6 +62,14 @@ export default function Settings() {
             items={[3, 5, 10, 15].map((v) => ({ v, label: String(v) }))}
           />
         </div>
+        <Row
+          icon={Sparkles}
+          bg="var(--brand-soft)"
+          fg="var(--blu-txt)"
+          title="Tự chấm khi ký"
+          sub={profile.autoSign ? "Không cần bấm nút, ký xong là chấm" : "Bấm nút, đếm 3-2-1 rồi ghi 2,5 giây"}
+          right={<Toggle label="Tự chấm khi ký" on={profile.autoSign} onChange={(v) => update({ autoSign: v })} />}
+        />
         <Row icon={Gauge} bg="var(--yel-soft)" fg="var(--yel-txt)" title="Video mẫu phát chậm" sub="Mặc định 0.5x" right={<Toggle label="Video mẫu phát chậm" on={profile.slowVideo} onChange={(v) => update({ slowVideo: v })} />} />
       </div>
 

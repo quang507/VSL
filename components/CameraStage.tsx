@@ -13,6 +13,7 @@ export default function CameraStage({
   count,
   handsVisible,
   veil,
+  corner,
   error,
   hint = "none",
 }: {
@@ -22,6 +23,8 @@ export default function CameraStage({
   count: number;
   handsVisible: number;
   veil?: ReactNode;
+  /** Ô nhỏ ở góc dưới phải, ví dụ video mẫu để vừa nhìn vừa ký theo. */
+  corner?: ReactNode;
   error?: boolean;
   hint?: Hint;
 }) {
@@ -65,6 +68,7 @@ export default function CameraStage({
           {count}
         </div>
       )}
+      {corner && !error && <div className="cam-pip">{corner}</div>}
       {veil && <div className="cam-veil">{veil}</div>}
     </div>
   );

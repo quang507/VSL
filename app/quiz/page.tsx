@@ -4,8 +4,9 @@ import { asset } from "@/lib/base";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { X, Camera, ArrowRight, SkipForward, RotateCcw, Info } from "lucide-react";
-import { CONFIDENCE_THRESHOLD } from "@/lib/constants";
-import { useSignPractice } from "@/lib/useSignPractice";
+import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
+import SignCapture from "@/components/SignCapture";
+import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import { useLabels } from "@/lib/useLabels";
 import { recordAttempt, loadProgress, dueWords } from "@/lib/progress";
 import { signal } from "@/lib/feedback";
@@ -38,8 +39,6 @@ function QuizInner() {
   const [graded, setGraded] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
 
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice();
-
   const buildDeck = (ls: string[]) => (review ? dueWords(loadProgress(), ls) : shuffle(ls).slice(0, QUIZ_LEN));
 
   useEffect(() => {
@@ -51,10 +50,7 @@ function QuizInner() {
   const finished = deck.length > 0 && idx >= deck.length;
   const score = results.filter(Boolean).length;
 
-  const onStart = async () => {
-    setPred(null);
-    setGraded(false);
-    const result = await start();
+  const onResult = (result: Prediction | null) => {
     setPred(result);
     const ok = !!(result && result.label === target && result.confidence >= CONFIDENCE_THRESHOLD);
     if (result) {
@@ -85,6 +81,8 @@ function QuizInner() {
   };
 
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
+  const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
+  const adv = useAutoAdvance(auto && graded && correct && !finished, () => next());
 
   if (review && labels.length > 0 && deck.length === 0)
     return (
@@ -178,24 +176,7 @@ function QuizInner() {
         ))}
       </div>
 
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
-
-      {cameraError && (
-        <div className="tile t-red" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Info size={22} color="var(--neg)" aria-hidden />
-          <span className="bm" style={{ color: "var(--txt)" }}>
-            Không mở được camera. Bạn có thể bỏ qua câu này.
-          </span>
-        </div>
-      )}
-      {!modelReady && !cameraError && phase !== "loading" && (
-        <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Info size={22} color="var(--yel-txt)" aria-hidden />
-          <span className="bm" style={{ color: "var(--txt)" }}>
-            Chưa tải được mô hình AI, câu trả lời sẽ chưa được chấm.
-          </span>
-        </div>
-      )}
+      <SignCapture modelUrl={MODEL_URL} labelsUrl={LABELS_URL} onResult={onResult} locked={graded} manualLabel="Ký hiệu" errorNote="Bạn có thể bỏ qua câu này." />
 
       {pred && (
         <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
@@ -215,13 +196,10 @@ function QuizInner() {
         </section>
       )}
 
-      {!graded ? (
-        <Btn icon={Camera} onClick={onStart} disabled={phase === "loading" || phase === "countdown" || phase === "recording" || !!cameraError}>
-          {phase === "countdown" ? `Chuẩn bị… ${count}` : phase === "recording" ? "Đang ghi…" : "Ký hiệu"}
-        </Btn>
-      ) : (
+      {graded && (
         <Btn level={correct ? "positive" : "accent"} icon={ArrowRight} onClick={next}>
           {idx + 1 >= deck.length ? "Xem kết quả" : "Câu tiếp theo"}
+          {adv.counting ? ` · ${adv.left}` : ""}
         </Btn>
       )}
       {!graded && (

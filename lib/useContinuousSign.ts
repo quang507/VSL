@@ -60,7 +60,7 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
     let busy = false;
     let lastHint: Hint = "none";
     let lastCount = -1;
-    let lastStatus: Status = "idle";
+    let lastStatus: Status = "loading"; // phải khớp giá trị khởi tạo của state, nếu không setS("idle") đầu tiên bị bỏ qua
     const setS = (s: Status) => {
       if (s !== lastStatus) {
         lastStatus = s;

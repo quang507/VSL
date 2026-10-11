@@ -19,8 +19,10 @@ HOW TO TEST THE MAIN FEATURE (about 2 minutes)
 1. Open the app, tap "Bắt đầu" and finish setup (name is optional).
 2. On the home tab "Lộ trình", tap "Học tiếp".
 3. Step 1 shows a real signer video. Step 2 ("Tập & chấm") opens the front camera.
-4. Stand about 1 m from the phone so both hands fit in the dashed frame, tap "Bắt đầu ký",
-   wait for the 3-2-1 countdown and copy the sign from the video.
+4. Stand about 1 m from the phone so your head, both hands and waist are visible, then copy
+   the sign shown in the small sample video in the corner. There is no button to press: the app
+   scores the sign automatically when your hands stop moving or go down.
+   (A button with a 3-2-1 countdown is available in Settings → "Tự chấm khi ký" off.)
 5. The app shows the result with text, a green or red screen-edge flash and a haptic pattern
    (one tap = correct, two taps = not recognised). Sound is optional because the audience is Deaf.
 

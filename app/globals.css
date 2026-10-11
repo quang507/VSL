@@ -513,3 +513,10 @@ input { font: inherit; }
   background: var(--surface); border: 1.5px solid var(--brand-bd); border-bottom: none; border-radius: 32px 32px 0 0;
 }
 @media (min-width: 768px) { .welcome-sheet { border-radius: 32px; border-bottom: 1.5px solid var(--brand-bd); margin-bottom: 32px; } }
+
+/* Video mẫu thu nhỏ ở góc khung camera: vừa nhìn vừa ký theo */
+.cam-pip {
+  position: absolute; z-index: 4; right: 12px; bottom: 12px; width: 32%; max-width: 150px; aspect-ratio: 1 / 1;
+  border-radius: 14px; overflow: hidden; border: 2px solid #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); background: #111;
+}
+.cam-pip .vid { width: 100%; height: 100%; }

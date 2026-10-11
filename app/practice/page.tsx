@@ -4,8 +4,7 @@ import CameraError from "@/components/CameraError";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, RotateCcw, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
-import { useSignPractice } from "@/lib/useSignPractice";
-import { CONFIDENCE_THRESHOLD } from "@/lib/constants";
+import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL } from "@/lib/constants";
 import { recordAttempt, loadProgress, countLearned } from "@/lib/progress";
 import { findLesson } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
@@ -14,7 +13,9 @@ import { signal } from "@/lib/feedback";
 import { BADGES, earnedBadgeIds } from "@/lib/badges";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
-import CameraStage from "@/components/CameraStage";
+import SignCapture from "@/components/SignCapture";
+import LoopVideo from "@/components/LoopVideo";
+import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import SampleMedia from "@/components/SampleMedia";
 import Flash from "@/components/Flash";
 import SaveBtn from "@/components/SaveBtn";
@@ -26,14 +27,13 @@ function PracticeInner() {
   const target = params.get("word") ?? "";
   const lessonId = params.get("lesson") ?? "";
 
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice();
-
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
   const [step, setStep] = useState<"demo" | "practice">("demo");
   const [newBadge, setNewBadge] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
   const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
+  const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
 
   useEffect(() => {
     if (!newBadge) return;
@@ -46,11 +46,10 @@ function PracticeInner() {
   const idx = lesson ? lesson.words.indexOf(target) : -1;
   const nextWord = lesson && idx >= 0 && idx + 1 < lesson.words.length ? lesson.words[idx + 1] : null;
 
-  const onStart = async () => {
-    setPred(null);
-    setDone(false);
-    const result = await start();
+  // Một lần ký vừa được chấm (tự chấm hoặc bấm nút). null = không thấy tay.
+  const onResult = (result: Prediction | null) => {
     setPred(result);
+    setDone(false);
     if (result) {
       const ok = result.label === target && result.confidence >= CONFIDENCE_THRESHOLD;
       const before = loadProgress();
@@ -66,18 +65,20 @@ function PracticeInner() {
     }
   };
 
-  const goTo = (word: string) => {
+  // stay = giữ nguyên bước camera (tự chấm: sang từ mới là ký luôn, video mẫu nằm ở góc khung)
+  const goTo = (word: string, stay = false) => {
     setPred(null);
     setDone(false);
-    setStep("demo");
+    setStep(stay ? "practice" : "demo");
     setNewBadge(null);
     router.push(practiceUrl(word, lessonId || undefined));
   };
 
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
+  // Ký đúng ở chế độ tự chấm → đếm 3 giây rồi tự sang từ tiếp theo (huỷ được)
+  const adv = useAutoAdvance(auto && correct && !!lesson && !!nextWord, () => nextWord && goTo(nextWord, true));
   const confPct = pred ? Math.round(pred.confidence * 100) : 0;
   const badge = BADGES.find((b) => b.id === newBadge);
-  const busy = phase === "loading" || phase === "countdown" || phase === "recording";
 
   return (
     <main className="app" style={{ gap: 18 }}>
@@ -124,7 +125,11 @@ function PracticeInner() {
               <IconCircle icon={Lightbulb} size={36} bg="var(--yel-soft)" fg="var(--yel-txt)" square />
               <span className="bb">Mẹo để camera chấm chuẩn</span>
             </div>
-            {["Đứng cách điện thoại khoảng 1 mét, đủ sáng", "Giữ cả hai tay trong khung nét đứt", "Bấm Bắt đầu, đếm 3-2-1 rồi ký trong khoảng 2,5 giây"].map((t, i) => (
+            {[
+              "Lùi ra khoảng 1 mét, đủ sáng, để máy thấy từ đầu đến bụng",
+              "Ký đủ cả hai tay như trong mẫu, kể cả tay đặt yên",
+              auto ? "Cứ ký theo mẫu, app tự chấm khi bạn dừng tay. Không cần bấm nút" : "Bấm Bắt đầu, đếm 3-2-1 rồi ký trong khoảng 2,5 giây",
+            ].map((t, i) => (
               <div key={t} className="row" style={{ gap: 10 }}>
                 <span className="icon-circle" style={{ width: 26, height: 26, background: "var(--brand)", color: "#fff", fontWeight: 700, fontSize: 13 }}>
                   {i + 1}
@@ -141,17 +146,15 @@ function PracticeInner() {
         </>
       ) : (
         <>
-          <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
-
-          {cameraError && <CameraError note="Bạn vẫn xem được video mẫu." />}
-          {!modelReady && !cameraError && phase !== "loading" && (
-            <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Info size={22} color="var(--yel-txt)" aria-hidden />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                Chưa tải được mô hình AI nên chưa chấm điểm. Khung xương tay vẫn hoạt động.
-              </span>
-            </div>
-          )}
+          <SignCapture
+            modelUrl={MODEL_URL}
+            labelsUrl={LABELS_URL}
+            onResult={onResult}
+            locked={correct && !!lesson}
+            attempted={done}
+            errorNote="Bạn vẫn xem được video mẫu."
+            corner={target ? <LoopVideo word={target} label={`Video mẫu “${target}”`} style={{ width: "100%", height: "100%", borderRadius: 0 }} /> : undefined}
+          />
 
           {pred && (
             <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
@@ -170,30 +173,25 @@ function PracticeInner() {
               </div>
             </section>
           )}
-          {phase === "result" && !pred && modelReady && (
-            <section className="tile t-org" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Info size={22} color="var(--org-txt)" aria-hidden />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                Không thấy tay trong lúc ghi. Đưa tay vào khung rồi thử lại.
-              </span>
-            </section>
-          )}
-
           {correct && lesson ? (
             nextWord ? (
-              <Btn level="positive" icon={SkipForward} onClick={() => goTo(nextWord)}>
-                Từ tiếp theo: {nextWord}
-              </Btn>
+              <>
+                <Btn level="positive" icon={SkipForward} onClick={() => goTo(nextWord, auto)}>
+                  Từ tiếp theo: {nextWord}
+                  {adv.counting ? ` · ${adv.left}` : ""}
+                </Btn>
+                {adv.counting && (
+                  <Btn level="ghost" size="sm" onClick={adv.cancel}>
+                    Ở lại từ này
+                  </Btn>
+                )}
+              </>
             ) : (
               <Btn level="positive" href={lessonUrl(lesson.id)}>
                 Hoàn thành “{lesson.title}”
               </Btn>
             )
-          ) : (
-            <Btn icon={done ? RotateCcw : Camera} onClick={onStart} disabled={busy || !!cameraError}>
-              {cameraError ? "Chưa mở được camera" : phase === "loading" ? "Đang mở camera…" : phase === "countdown" ? `Chuẩn bị… ${count}` : phase === "recording" ? "Đang ghi…" : done ? "Thử lại" : "Bắt đầu ký"}
-            </Btn>
-          )}
+          ) : null}
           <div className="row">
             <Btn level="tertiary" size="md" icon={Eye} onClick={() => setStep("demo")}>
               Xem lại mẫu

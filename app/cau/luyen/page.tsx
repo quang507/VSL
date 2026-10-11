@@ -4,7 +4,7 @@ import CameraError from "@/components/CameraError";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, RotateCcw, SkipForward, Info, ChevronLeft } from "lucide-react";
-import { useSignPractice } from "@/lib/useSignPractice";
+import SignCapture from "@/components/SignCapture";
 import { CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { recordAttempt } from "@/lib/progress";
 import { signal } from "@/lib/feedback";
@@ -23,20 +23,16 @@ function Inner() {
   const target = labels[i] ?? "";
   const next = i + 1 < labels.length ? i + 1 : null;
   const frames = usePhraseDemo(target);
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, modelReady, cameraError, start } = useSignPractice(PHRASE_MODEL, PHRASE_LABELS);
   const [step, setStep] = useState<"demo" | "practice">("demo");
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
 
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
-  const busy = phase === "loading" || phase === "countdown" || phase === "recording";
 
-  const onStart = async () => {
-    setPred(null);
-    setDone(false);
-    const r = await start();
+  const onResult = (r: Prediction | null) => {
     setPred(r);
+    setDone(false);
     if (r) {
       const ok = r.label === target && r.confidence >= CONFIDENCE_THRESHOLD;
       const p = recordAttempt(target, ok);
@@ -93,16 +89,7 @@ function Inner() {
         </>
       ) : (
         <>
-          <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
-          {cameraError && <CameraError note="Bạn vẫn xem được hoạt hình mẫu." />}
-          {!modelReady && !cameraError && phase !== "loading" && (
-            <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Info size={22} color="var(--yel-txt)" aria-hidden />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                Chưa tải được mô hình câu giao tiếp.
-              </span>
-            </div>
-          )}
+          <SignCapture modelUrl={PHRASE_MODEL} labelsUrl={PHRASE_LABELS} onResult={onResult} locked={correct && next !== null} attempted={done} errorNote="Bạn vẫn xem được hoạt hình mẫu." />
           {pred && (
             <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
               <Ring pct={Math.round(pred.confidence * 100)} color={correct ? "var(--grn)" : "var(--org)"} size={76} thick={9}>
@@ -118,23 +105,11 @@ function Inner() {
               </div>
             </section>
           )}
-          {phase === "result" && !pred && modelReady && (
-            <section className="tile t-org" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Info size={22} color="var(--org-txt)" aria-hidden />
-              <span className="bm" style={{ color: "var(--txt)" }}>
-                Không thấy tay đủ lâu trong lúc ghi. Đưa tay vào khung rồi thử lại.
-              </span>
-            </section>
-          )}
           {correct && next !== null ? (
             <Btn level="positive" icon={SkipForward} onClick={() => goTo(next)}>
               Câu tiếp theo
             </Btn>
-          ) : (
-            <Btn icon={done ? RotateCcw : Camera} onClick={onStart} disabled={busy || !!cameraError}>
-              {cameraError ? "Chưa mở được camera" : phase === "loading" ? "Đang mở camera…" : phase === "countdown" ? `Chuẩn bị… ${count}` : phase === "recording" ? "Đang ghi…" : done ? "Thử lại" : "Bắt đầu ký"}
-            </Btn>
-          )}
+          ) : null}
           <div className="row">
             <Btn level="tertiary" size="md" icon={Eye} onClick={() => setStep("demo")}>
               Xem lại mẫu

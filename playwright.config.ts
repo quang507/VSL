@@ -10,6 +10,7 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
+  workers: 6, // nhiều hơn thì các test camera (MediaPipe chạy CPU) bị nghẽn
   retries: 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "tests/report" }], ["json", { outputFile: "tests/report/results.json" }]],
   use: {

@@ -68,7 +68,8 @@ Chạy trên ba môi trường: **iPhone 13 (WebKit, nhân của Safari)**, **Pi
 | N6 | Mở Câu giao tiếp | Đúng 59 câu, câu chưa rõ nghĩa không hiện |
 | N7 | Đi qua 4 tab, bấm nút tìm | Đúng trang; ô tìm được focus |
 | N8 | Mở luyện với camera (camera giả) | Thấy khung camera và gợi ý "Đưa tay vào khung" |
-| N9 | Chặn mọi máy chủ ngoài rồi học và mở luyện camera | Video mẫu chạy, camera chấm được, không có yêu cầu nào ra ngoài (App Store mục 4.2) |
+| N9 | Chặn mọi máy chủ ngoài rồi học và mở luyện camera | Video mẫu chạy, app vào trạng thái tự chấm (không có nút), có video mẫu ở góc khung, không có yêu cầu nào ra ngoài (App Store mục 4.2) |
+| N10 | Tắt "Tự chấm khi ký" trong Cài đặt rồi luyện | Có nút "Bắt đầu ký", đếm ngược 3-2-1, báo "Không thấy tay" với camera giả |
 | R | Bề rộng 320, 390, 768, 1280px | Không trang nào cuộn ngang |
 
 ### Tiếp cận (`a11y.spec.ts`)
@@ -271,7 +272,7 @@ Mức độ: 0 không phải lỗi · 1 thẩm mỹ · 2 nhỏ · 3 lớn · 4 n
 | N9 chạy không cần mạng ngoài | Đạt |
 | Không cuộn ngang ở 320, 390, 768, 1280px | Đạt |
 | axe-core, 16 trang × 2 môi trường | 32/32 đạt, 0 vi phạm nghiêm trọng |
-| Tổng số test tự động | 59/59 đạt |
+| Tổng số test tự động | 60/60 đạt |
 | Vùng chạm từ 44px | Đạt |
 | Lighthouse màn chào | Hiệu năng 100 · Tiếp cận 100 · Thực hành tốt 100 · LCP 1,4 giây |
 | Lighthouse Từ điển | Hiệu năng 93 · Tiếp cận 100 · Thực hành tốt 100 · CLS 0,022 |
