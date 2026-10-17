@@ -2,11 +2,11 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, SkipForward, Info, ChevronLeft, MessageCircle } from "lucide-react";
+import { Camera, Eye, SkipForward, Info, ChevronLeft, MessageCircle, Volume2 } from "lucide-react";
 import SignCapture from "@/components/SignCapture";
 import { PHRASE_CONFIDENCE_THRESHOLD as CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { recordAttempt } from "@/lib/progress";
-import { signal } from "@/lib/feedback";
+import { signal, speakVietnamese, fireConfetti } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import { PHRASE_MODEL, PHRASE_LABELS, usePhrases, usePhraseDemo, phraseUrl, getPhraseMeta } from "@/lib/phrases";
 import type { Prediction } from "@/lib/classifier";
@@ -39,6 +39,11 @@ function Inner() {
       const prof = loadProfile();
       signal(ok, { sound: p.soundOn, vibrate: prof.vibrate });
       if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
+      if (ok) {
+        fireConfetti();
+        // Giả lập đối thoại trực tiếp: Người thân phản hồi bằng giọng nói
+        setTimeout(() => speakVietnamese(meta.dialogue.partnerReply), 350);
+      }
       setDone(true);
     }
   };
@@ -77,8 +82,19 @@ function Inner() {
       {step === "demo" ? (
         <>
           {/* Tình huống đàm thoại 2 chiều */}
-          <div className="card" style={{ gap: 6, background: "var(--surface)", borderLeft: "4px solid var(--pur)", padding: "12px 14px", borderRadius: 16 }}>
-            <span className="sm" style={{ color: "var(--txt2)", fontWeight: 600 }}>Tình huống hội thoại</span>
+          <div className="card" style={{ gap: 8, background: "var(--surface)", borderLeft: "4px solid var(--pur)", padding: "12px 14px", borderRadius: 16 }}>
+            <div className="row row--between" style={{ alignItems: "center" }}>
+              <span className="sm" style={{ color: "var(--txt2)", fontWeight: 600 }}>Tình huống hội thoại mô phỏng</span>
+              <button
+                type="button"
+                className="icon-circle"
+                style={{ width: 36, height: 36, border: "none", background: "var(--pur-soft)", color: "var(--pur-txt)" }}
+                onClick={() => speakVietnamese(meta.dialogue.partnerPrompt)}
+                aria-label="Nghe người thân nói câu này"
+              >
+                <Volume2 size={18} aria-hidden />
+              </button>
+            </div>
             <span className="bb" style={{ color: "var(--txt)", fontSize: 15 }}>{meta.dialogue.partnerPrompt}</span>
           </div>
 

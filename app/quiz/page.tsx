@@ -10,7 +10,7 @@ import LoopVideo from "@/components/LoopVideo";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import { useLabels } from "@/lib/useLabels";
 import { recordAttempt, loadProgress, dueWords } from "@/lib/progress";
-import { signal } from "@/lib/feedback";
+import { signal, fireConfetti } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
 import Flash from "@/components/Flash";
@@ -68,6 +68,7 @@ function QuizInner() {
     const prof = loadProfile();
     signal(ok, { sound: p.soundOn, vibrate: prof.vibrate });
     if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
+    if (ok) fireConfetti();
     setResults((r) => [...r, ok]);
     setGraded(true);
   };
@@ -80,6 +81,7 @@ function QuizInner() {
       const prof = loadProfile();
       signal(ok, { sound: p.soundOn, vibrate: prof.vibrate });
       if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
+      if (ok) fireConfetti();
     }
     setResults((r) => [...r, ok]);
     setGraded(true);

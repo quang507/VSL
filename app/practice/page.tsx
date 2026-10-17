@@ -1,14 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft, Volume2, Share2 } from "lucide-react";
+import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft, Volume2, Share2, Video, RotateCcw, Play } from "lucide-react";
 import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import { recordAttempt, loadProgress, countLearned } from "@/lib/progress";
 import { findLesson } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { practiceUrl, lessonUrl } from "@/lib/nav";
-import { signal, speakVietnamese } from "@/lib/feedback";
+import { signal, speakVietnamese, fireConfetti } from "@/lib/feedback";
 import { BADGES, earnedBadgeIds } from "@/lib/badges";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
@@ -25,6 +25,35 @@ import { Bar, Btn, IconBtn, IconCircle, Pill, Ring, Segmented } from "@/componen
 function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: () => void }) {
   const { videoRef, canvasRef, handsVisible, hint, cameraError } = useSignPractice(MODEL_URL, LABELS_URL, WORD_FEATURES);
   const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startSelfRecord = () => {
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+    const stream = videoRef.current.srcObject as MediaStream;
+    try {
+      chunksRef.current = [];
+      const mr = new MediaRecorder(stream, { mimeType: "video/webm" });
+      mediaRecorderRef.current = mr;
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        setRecordedUrl(URL.createObjectURL(blob));
+        setRecording(false);
+      };
+      mr.start();
+      setRecording(true);
+      setTimeout(() => {
+        if (mr.state === "recording") mr.stop();
+      }, 3000);
+    } catch {
+      setRecording(false);
+    }
+  };
 
   return (
     <div className="col" style={{ gap: 16 }}>
@@ -33,7 +62,7 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
           🪞
         </span>
         <span className="bm" style={{ color: "var(--txt)" }}>
-          <strong>Chế độ Soi Gương:</strong> Vừa xem video mẫu vừa nhìn dáng tay của bạn để uốn nắn từng ngón tay. Chế độ này <strong>hoàn toàn không chấm điểm</strong>, giúp bạn luyện tập tự nhiên không áp lực.
+          <strong>Chế độ Soi Gương & Đối chiếu clip (Lingvano):</strong> Vừa xem video mẫu vừa soi gương tay, hoặc tự bấm quay clip 3 giây để đặt cạnh người mẫu so khớp góc khuỷu tay và tư thế.
         </span>
       </div>
 
@@ -43,22 +72,56 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
           <SampleMedia word={word} slow={slow} aspect="4 / 3" />
         </div>
         <div className="col col--tight">
-          <span className="eyebrow">2. Gương soi của bạn (MediaPipe)</span>
-          <CameraStage
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            phase="ready"
-            count={0}
-            handsVisible={handsVisible}
-            hint={hint}
-            error={!!cameraError}
-          />
+          <span className="eyebrow">2. {recordedUrl ? "Clip của bạn (Đối chiếu)" : "Gương soi trực tiếp"}</span>
+          {recordedUrl ? (
+            <div style={{ aspectRatio: "4 / 3", background: "#111", borderRadius: 20, overflow: "hidden", position: "relative" }}>
+              <video
+                src={recordedUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.6)", color: "#fff", borderColor: "transparent" }}
+                onClick={() => setRecordedUrl(null)}
+              >
+                <RotateCcw size={16} aria-hidden /> Soi trực tiếp
+              </button>
+            </div>
+          ) : (
+            <CameraStage
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              phase="ready"
+              count={0}
+              handsVisible={handsVisible}
+              hint={hint}
+              error={!!cameraError}
+            />
+          )}
         </div>
       </div>
 
-      <Btn icon={Camera} onClick={onGoPractice}>
-        Đã thuộc động tác → Vào thi chấm điểm
-      </Btn>
+      <div className="row" style={{ gap: 10 }}>
+        {!recordedUrl && (
+          <button
+            type="button"
+            className="btn btn--secondary btn--lg"
+            style={{ flex: 1, minHeight: 48, fontWeight: 700, borderColor: recording ? "var(--red)" : undefined, color: recording ? "var(--red-txt)" : undefined }}
+            onClick={startSelfRecord}
+            disabled={recording}
+          >
+            <Video size={20} aria-hidden /> {recording ? "Đang quay 3 giây…" : "Quay 3 giây để đối chiếu"}
+          </button>
+        )}
+        <Btn icon={Camera} onClick={onGoPractice} style={{ flex: 1 }}>
+          Đã thuộc động tác → Vào thi chấm điểm
+        </Btn>
+      </div>
     </div>
   );
 }
@@ -105,6 +168,7 @@ function PracticeInner() {
       const prof = loadProfile();
       signal(ok, { sound: after.soundOn, vibrate: prof.vibrate });
       if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
+      if (ok) fireConfetti();
       const badgesAfter = earnedBadgeIds(after, countLearned(after, labels));
       const fresh = [...badgesAfter].find((id) => !badgesBefore.has(id));
       if (fresh) setNewBadge(fresh);

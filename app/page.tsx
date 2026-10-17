@@ -4,7 +4,7 @@ import { asset } from "@/lib/base";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play, Map, Star, Sparkles } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LoopVideo from "@/components/LoopVideo";
 import { Bar, Btn } from "@/components/ui";
@@ -95,50 +95,143 @@ export default function Home() {
         <Bar pct={(today / goal) * 100} h={8} color="var(--brand)" />
       </section>
 
-      {/* Chặng hiện tại: danh sách bài */}
+      {/* Chặng hiện tại: Bản đồ lộ trình học Lingvano Node Roadmap */}
       {loading && [0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 74, borderRadius: 20 }} />)}
       {current && (
-        <section className="col" style={{ gap: 12 }} aria-label={`Chặng ${stageIdx + 1}`}>
-          <div className="row row--between" style={{ marginBottom: 12 }}>
-            <h2 className="h4" style={{ color: "var(--ink)" }}>
-              Chặng {stageIdx + 1} · {current.title}
-            </h2>
-            <span className="t-sub num" style={{ color: "var(--acc)", fontWeight: 600 }}>
-              {done}/{current.words.length} bài
-            </span>
+        <section className="col" style={{ gap: 16 }} aria-label={`Bản đồ chặng ${stageIdx + 1}`}>
+          <div className="card" style={{ padding: "16px 18px", background: "var(--surface)", boxShadow: "var(--shadow-tile)", gap: 10 }}>
+            <div className="row row--between" style={{ alignItems: "center" }}>
+              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                <span className="badge badge--s badge--acc">Chặng {stageIdx + 1}</span>
+                <h2 className="h4" style={{ color: "var(--ink)", margin: 0 }}>
+                  {current.title}
+                </h2>
+              </div>
+              <span className="t-sub num" style={{ color: "var(--acc)", fontWeight: 700 }}>
+                {done}/{current.words.length} bài
+              </span>
+            </div>
+            <Bar pct={(done / current.words.length) * 100} h={6} color="var(--brand)" />
           </div>
-          {current.words.map((w, i) => {
-            const ok = learned(w);
-            const isCur = i === curWordIdx && !ok;
-            const locked = !ok && i > curWordIdx;
-            if (locked)
+
+          {/* Node Map đường mòn uốn lượn phong cách Lingvano */}
+          <div
+            className="col"
+            style={{
+              position: "relative",
+              padding: "16px 0 24px",
+              gap: 20,
+              alignItems: "center",
+            }}
+          >
+            {/* Đường ray kết nối chính giữa */}
+            <div
+              style={{
+                position: "absolute",
+                top: 30,
+                bottom: 30,
+                width: 6,
+                background: "var(--line)",
+                borderRadius: 4,
+                zIndex: 0,
+              }}
+            />
+
+            {current.words.map((w, i) => {
+              const ok = learned(w);
+              const isCur = i === curWordIdx && !ok;
+              const locked = !ok && i > curWordIdx;
+              // Zigzag shift so le kiểu Lingvano: giữa -> lệch trái -> lệch phải
+              const offset = i % 3 === 1 ? -42 : i % 3 === 2 ? 42 : 0;
+
               return (
-                <div key={w} className="lrow lrow--lock" aria-label={`${w}, chưa mở`}>
-                  <span className="thumb" style={{ background: "var(--sunk)" }}>
-                    <Lock size={22} aria-hidden />
-                  </span>
-                  <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
-                    <span className="t-title" style={{ color: "inherit" }}>
-                      {w}
-                    </span>
-                    <span className="t-sub" style={{ color: "inherit" }}>
-                      Mở sau bài {current.words[i - 1]}
-                    </span>
+                <div
+                  key={w}
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    transform: `translateX(${offset}px)`,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {locked ? (
+                    <div
+                      style={{
+                        width: 68,
+                        height: 68,
+                        borderRadius: "50%",
+                        background: "var(--sunk)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--txt3)",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                        border: "3px solid var(--surface)",
+                      }}
+                      title={`${w} (Chưa mở)`}
+                      aria-label={`${w}, chưa mở`}
+                    >
+                      <Lock size={24} aria-hidden />
+                    </div>
+                  ) : (
+                    <Link
+                      href={practiceUrl(w, current.id)}
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: "50%",
+                        background: ok
+                          ? "var(--pos)"
+                          : isCur
+                          ? "var(--brand)"
+                          : "var(--surface)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: ok || isCur ? "#fff" : "var(--acc)",
+                        boxShadow: isCur
+                          ? "0 0 0 6px var(--brand-soft), 0 8px 24px rgba(44, 99, 196, 0.35)"
+                          : "0 6px 18px rgba(0,0,0,0.1)",
+                        border: "3px solid #fff",
+                        textDecoration: "none",
+                        transition: "transform 0.2s ease",
+                      }}
+                      aria-label={`Bài học ${w}, ${ok ? "đã hoàn thành" : "bắt đầu học"}`}
+                    >
+                      {ok ? (
+                        <CheckCircle2 size={32} color="#fff" aria-hidden />
+                      ) : isCur ? (
+                        <Play size={28} fill="#fff" color="#fff" aria-hidden style={{ marginLeft: 3 }} />
+                      ) : (
+                        <Star size={26} fill="var(--acc)" color="var(--acc)" aria-hidden />
+                      )}
+                    </Link>
+                  )}
+                  <span
+                    className="bb"
+                    style={{
+                      fontSize: 13,
+                      background: isCur ? "var(--brand-soft)" : "var(--surface)",
+                      color: isCur ? "var(--acc)" : locked ? "var(--txt3)" : "var(--txt)",
+                      padding: "2px 10px",
+                      borderRadius: 12,
+                      boxShadow: "var(--shadow-tile)",
+                      maxWidth: 110,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontWeight: isCur ? 700 : 600,
+                    }}
+                  >
+                    {w}
                   </span>
                 </div>
               );
-            return (
-              <Link key={w} href={practiceUrl(w, current.id)} className={`lrow ${isCur ? "lrow--cur" : ""}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="thumb" src={thumbUrl(w)} alt="" loading="lazy" />
-                <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
-                  <span className="t-title">{w}</span>
-                  <span className="t-sub">{ok ? "Đã xong · 100%" : `Đang học · ${done}/${current.words.length}`}</span>
-                </span>
-                {ok ? <CheckCircle2 size={28} fill="var(--pos)" color="#fff" aria-label="Đã xong" /> : <Play size={18} fill="var(--acc)" color="var(--acc)" aria-hidden />}
-              </Link>
-            );
-          })}
+            })}
+          </div>
         </section>
       )}
 
