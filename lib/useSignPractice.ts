@@ -59,6 +59,7 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   useEffect(() => {
     let stream: MediaStream | null = null;
     let cancelled = false;
+    let lastVideoTime = -1;
 
     (async () => {
       try {
@@ -98,7 +99,9 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
             v.srcObject = stream;
             v.play().catch(() => {});
           }
-          if (v && v.readyState >= 2) {
+          // Chỉ xử lý khi camera có frame MỚI (màn 60–120 Hz gọi loop nhiều hơn số frame camera)
+          if (v && v.readyState >= 2 && v.currentTime !== lastVideoTime) {
+            lastVideoTime = v.currentTime;
             if (canvas && canvas.width !== v.videoWidth && v.videoWidth) {
               canvas.width = v.videoWidth;
               canvas.height = v.videoHeight;
@@ -143,7 +146,7 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
       cancelAnimationFrame(rafRef.current);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [modelUrl, labelsUrl, features]);
 
   // Đếm ngược -> quay -> dự đoán. Trả về Prediction, hoặc null nếu chưa có model / không thấy tay.
   const start = useCallback((): Promise<Prediction | null> => {

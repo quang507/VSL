@@ -14,11 +14,54 @@ import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
 import SignCapture from "@/components/SignCapture";
 import LoopVideo from "@/components/LoopVideo";
+import CameraStage from "@/components/CameraStage";
+import { useSignPractice } from "@/lib/useSignPractice";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import SampleMedia from "@/components/SampleMedia";
 import Flash from "@/components/Flash";
 import SaveBtn from "@/components/SaveBtn";
 import { Bar, Btn, IconBtn, IconCircle, Pill, Ring, Segmented } from "@/components/ui";
+
+function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: () => void }) {
+  const { videoRef, canvasRef, handsVisible, hint, cameraError } = useSignPractice(MODEL_URL, LABELS_URL, WORD_FEATURES);
+  const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
+
+  return (
+    <div className="col" style={{ gap: 16 }}>
+      <div className="tile t-blu" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 24 }} aria-hidden>
+          🪞
+        </span>
+        <span className="bm" style={{ color: "var(--txt)" }}>
+          <strong>Chế độ Soi Gương:</strong> Vừa xem video mẫu vừa nhìn dáng tay của bạn để uốn nắn từng ngón tay. Chế độ này <strong>hoàn toàn không chấm điểm</strong>, giúp bạn luyện tập tự nhiên không áp lực.
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "start" }}>
+        <div className="col col--tight">
+          <span className="eyebrow">1. Video mẫu ({word})</span>
+          <SampleMedia word={word} slow={slow} aspect="4 / 3" />
+        </div>
+        <div className="col col--tight">
+          <span className="eyebrow">2. Gương soi của bạn (MediaPipe)</span>
+          <CameraStage
+            videoRef={videoRef}
+            canvasRef={canvasRef}
+            phase="ready"
+            count={0}
+            handsVisible={handsVisible}
+            hint={hint}
+            error={!!cameraError}
+          />
+        </div>
+      </div>
+
+      <Btn icon={Camera} onClick={onGoPractice}>
+        Đã thuộc động tác → Vào thi chấm điểm
+      </Btn>
+    </div>
+  );
+}
 
 function PracticeInner() {
   const params = useSearchParams();
@@ -28,7 +71,7 @@ function PracticeInner() {
 
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
-  const [step, setStep] = useState<"demo" | "practice">("demo");
+  const [step, setStep] = useState<"demo" | "mirror" | "practice">("demo");
   const [newBadge, setNewBadge] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
   const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
@@ -39,6 +82,11 @@ function PracticeInner() {
     const t = setTimeout(() => setNewBadge(null), 5000);
     return () => clearTimeout(t);
   }, [newBadge]);
+
+  useEffect(() => {
+    setPred(null);
+    setDone(false);
+  }, [target]);
 
   const { labels } = useLabels();
   const lesson = useMemo(() => (lessonId ? findLesson(labels, lessonId) : undefined), [labels, lessonId]);
@@ -104,17 +152,20 @@ function PracticeInner() {
       </div>
 
       <div className="col col--tight">
-        <span className="bm">{step === "demo" ? "Xem mẫu rồi làm theo" : "Đến lượt bạn ký"}</span>
+        <span className="bm">
+          {step === "demo" ? "Xem mẫu rồi làm theo" : step === "mirror" ? "Soi gương và uốn nắn dáng tay (không chấm điểm)" : "Đến lượt bạn ký (AI tự chấm)"}
+        </span>
         <h1 className="d4">{target || "—"}</h1>
       </div>
 
       <Segmented
         label="Bước"
         value={step}
-        onChange={(v) => setStep(v)}
+        onChange={(v) => setStep(v as "demo" | "mirror" | "practice")}
         items={[
           { v: "demo", label: "1 · Xem mẫu" },
-          { v: "practice", label: "2 · Tập & chấm" },
+          { v: "mirror", label: "2 · Soi gương" },
+          { v: "practice", label: "3 · Tập & chấm" },
         ]}
       />
 
@@ -141,10 +192,22 @@ function PracticeInner() {
               </div>
             ))}
           </div>
-          <Btn icon={Camera} onClick={() => setStep("practice")}>
-            Tập trước camera
-          </Btn>
+          <div className="row" style={{ gap: 10 }}>
+            <Btn icon={Camera} onClick={() => setStep("practice")} style={{ flex: 1 }}>
+              Tập trước camera
+            </Btn>
+            <button
+              type="button"
+              className="btn btn--secondary btn--lg"
+              onClick={() => setStep("mirror")}
+              style={{ flex: 1, minHeight: 48, fontWeight: 700 }}
+            >
+              🪞 Soi gương 50/50
+            </button>
+          </div>
         </>
+      ) : step === "mirror" ? (
+        <MirrorPractice word={target} onGoPractice={() => setStep("practice")} />
       ) : (
         <>
           <SignCapture
@@ -194,10 +257,18 @@ function PracticeInner() {
               </Btn>
             )
           ) : null}
-          <div className="row">
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             <Btn level="tertiary" size="md" icon={Eye} onClick={() => setStep("demo")}>
               Xem lại mẫu
             </Btn>
+            <button
+              type="button"
+              className="btn btn--tertiary btn--md"
+              onClick={() => setStep("mirror")}
+              style={{ minHeight: 44, fontWeight: 600 }}
+            >
+              🪞 Soi gương 50/50
+            </button>
             {nextWord && !correct && (
               <Btn level="tertiary" size="md" icon={SkipForward} onClick={() => goTo(nextWord)}>
                 Bỏ qua

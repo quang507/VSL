@@ -26,10 +26,14 @@ export async function loadModel(modelUrl: string, labelsUrl: string): Promise<Lo
       // Chạy trước 1 lần với input rỗng để lúc người dùng ký xong có kết quả ngay.
       const nfeat = Number(m.inputs[0].shape[2]);
       const zero = tf.zeros([1, SEQ_LEN, nfeat]);
-      const warm = m.predict(zero) as tf.Tensor;
-      await warm.data();
-      zero.dispose();
-      warm.dispose();
+      let warm: tf.Tensor | null = null;
+      try {
+        warm = m.predict(zero) as tf.Tensor;
+        await warm.data();
+      } finally {
+        zero.dispose();
+        warm?.dispose();
+      }
       const l = { model: m, labels };
       ready.set(modelUrl, l);
       return l;
@@ -47,14 +51,18 @@ export async function predictTopK(modelUrl: string, sequence: Float32Array, k = 
   const nfeat = Number(l.model.inputs[0].shape[2]);
   if (sequence.length !== SEQ_LEN * nfeat) throw new Error(`Model cần ${nfeat} số/frame, nhận ${sequence.length / SEQ_LEN}`);
   const input = tf.tensor(sequence, [1, SEQ_LEN, nfeat]);
-  const output = l.model.predict(input) as tf.Tensor;
-  const probs = (await output.data()) as Float32Array;
-  input.dispose();
-  output.dispose();
-  return Array.from(probs)
-    .map((c, i) => ({ label: l.labels[i] ?? "?", confidence: c }))
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, k);
+  let output: tf.Tensor | null = null;
+  try {
+    output = l.model.predict(input) as tf.Tensor;
+    const probs = (await output.data()) as Float32Array;
+    return Array.from(probs)
+      .map((c, i) => ({ label: l.labels[i] ?? "?", confidence: c }))
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, k);
+  } finally {
+    input.dispose();
+    output?.dispose();
+  }
 }
 
 // ---- API cũ cho model từ đơn mặc định (practice / quiz đang dùng) ----

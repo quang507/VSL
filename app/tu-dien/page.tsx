@@ -24,7 +24,7 @@ const initial = (w: string) =>
 
 const ALPHABET = "A Ă Â B C D Đ E Ê G H I K L M N O Ô Ơ P Q R S T U Ư V X Y".split(" ");
 const TOPIC_TONES = ["var(--brand-soft)", "var(--yel-soft)", "var(--grn-soft)", "var(--pnk-soft)", "var(--pur-soft)", "var(--org-soft)"];
-type Tab = "cam" | "all";
+type Tab = "cam" | "abc" | "all";
 
 function greeting() {
   const h = new Date().getHours();
@@ -82,13 +82,19 @@ export default function Dictionary() {
   const trainedSet = useMemo(() => new Set(labels.map(fold)), [labels]);
   const due = useMemo(() => new Set(dueWords(progress, labels)), [progress, labels]);
 
-  // Nhớ tab; nút tìm ở thanh điều hướng mở trang với ?tim=1 → focus ô tìm
+  // Nhớ tab; hỗ trợ URL param ?tab=cam|abc|all; nút tìm ở thanh điều hướng mở trang với ?tim=1 → focus ô tìm
   useEffect(() => {
     try {
-      const t = localStorage.getItem("vsl-dict-tab");
-      if (t === "all" || t === "cam") setTab(t);
+      const sp = new URLSearchParams(window.location.search);
+      const urlTab = sp.get("tab") as Tab | null;
+      if (urlTab === "all" || urlTab === "cam" || urlTab === "abc") {
+        setTab(urlTab);
+      } else {
+        const t = localStorage.getItem("vsl-dict-tab");
+        if (t === "all" || t === "cam" || t === "abc") setTab(t);
+      }
+      if (sp.get("tim")) searchRef.current?.focus();
     } catch {}
-    if (new URLSearchParams(window.location.search).get("tim")) searchRef.current?.focus();
   }, []);
   const pickTab = (t: Tab) => {
     setTab(t);
@@ -96,6 +102,9 @@ export default function Dictionary() {
       localStorage.setItem("vsl-dict-tab", t);
     } catch {}
   };
+
+  const alphabetEntries = useMemo(() => entries.filter((e) => e.k === 2), [entries]);
+  const numberEntries = useMemo(() => entries.filter((e) => e.k === 1), [entries]);
 
   const wordOfDay = useMemo(() => {
     if (!labels.length) return "";
@@ -344,7 +353,8 @@ export default function Dictionary() {
               value={tab}
               onChange={pickTab}
               items={[
-                { v: "cam", label: `Chấm camera · ${labels.length}` },
+                { v: "cam", label: `Camera · ${labels.length}` },
+                { v: "abc", label: "Chữ cái & Số" },
                 { v: "all", label: `Bộ GD&ĐT · ${entries.length ? entries.length.toLocaleString("vi") : "…"}` },
               ]}
             />
@@ -388,6 +398,91 @@ export default function Dictionary() {
               )}
               <p className="sm" style={{ margin: "8px 0 0" }}>
                 Video mẫu: ViSignLanguage-Video (PTIT AI Challenge), giấy phép CC-BY-4.0.
+              </p>
+            </section>
+          ) : tab === "abc" ? (
+            <section className="col" style={{ gap: 20 }} aria-label="Bảng chữ cái và chữ số ngón tay">
+              <div className="card" style={{ gap: 6, background: "var(--brand-soft)", borderColor: "transparent", padding: "16px 18px" }}>
+                <span className="h4" style={{ color: "var(--acc)" }}>Đánh vần ngón tay (Fingerspelling)</span>
+                <span className="bm" style={{ color: "var(--txt)", fontSize: 15, lineHeight: 1.5 }}>
+                  Nền tảng giao tiếp thiết yếu để đánh vần tên riêng, địa chỉ và chữ số. Chọn ký tự để xem video mẫu chuẩn Bộ GD&ĐT, tua chậm 0.5x và tự đối chiếu qua camera (Soi gương).
+                </span>
+              </div>
+
+              <div className="col" style={{ gap: 10 }}>
+                <div className="row row--between">
+                  <h3 className="h4" style={{ color: "var(--txt)" }}>Bảng chữ cái & Dấu thanh</h3>
+                  <span className="sm num">{alphabetEntries.length} ký tự</span>
+                </div>
+                {qLoading ? (
+                  <div className="skeleton" style={{ height: 160 }} />
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 10 }}>
+                    {alphabetEntries.map((e) => (
+                      <Link
+                        key={e.w}
+                        href={wordUrl(e.w)}
+                        className="tile"
+                        style={{
+                          padding: "12px 6px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "var(--surface)",
+                          boxShadow: "var(--shadow-tile)",
+                          borderRadius: 16,
+                          minHeight: 68,
+                          textDecoration: "none",
+                        }}
+                        aria-label={`Ký tự ${e.w}`}
+                      >
+                        <span className="h3" style={{ color: "var(--acc)", margin: 0, lineHeight: 1 }}>{e.w}</span>
+                        <span className="sm" style={{ fontSize: 11, color: "var(--txt2)", marginTop: 4, textAlign: "center" }}>
+                          {e.w.length === 1 ? `Chữ ${e.w}` : e.w}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="col" style={{ gap: 10 }}>
+                <div className="row row--between">
+                  <h3 className="h4" style={{ color: "var(--txt)" }}>Chữ số ngón tay</h3>
+                  <span className="sm num">{numberEntries.length} số</span>
+                </div>
+                {qLoading ? (
+                  <div className="skeleton" style={{ height: 120 }} />
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 10 }}>
+                    {numberEntries.map((e) => (
+                      <Link
+                        key={e.w}
+                        href={wordUrl(e.w)}
+                        className="tile"
+                        style={{
+                          padding: "12px 6px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "var(--surface)",
+                          boxShadow: "var(--shadow-tile)",
+                          borderRadius: 16,
+                          minHeight: 68,
+                          textDecoration: "none",
+                        }}
+                        aria-label={`Số ${e.w}`}
+                      >
+                        <span className="h3" style={{ color: "var(--org)", margin: 0, lineHeight: 1 }}>{e.w}</span>
+                        <span className="sm" style={{ fontSize: 11, color: "var(--txt2)", marginTop: 4, textAlign: "center" }}>
+                          {e.w.length <= 2 ? `Số ${e.w}` : e.w}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="sm" style={{ margin: 0 }}>
+                Nguồn video: {QIPEDC_SOURCE}.
               </p>
             </section>
           ) : (

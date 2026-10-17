@@ -1,0 +1,44 @@
+appId: vn.vslv.app
+---
+# =====================================================================
+# Maestro E2E Test Suite cho VSLV
+# Kiểm thử tự động trên thiết bị thật (Android & iOS):
+# - Luồng bài học
+# - Chế độ Fingerspelling (Bảng chữ cái & Chữ số)
+# - Chế độ Turtle Mode (Tua chậm 0.5x)
+# - Chế độ Soi gương (Mirror Tool) đối chiếu cử chỉ tay
+# =====================================================================
+
+- launchApp:
+    clearState: false
+
+# 1. Kiểm tra màn hình chính và chuyển sang tab Luyện tập
+- assertVisible: "Luyện tập"
+- tapOn: "Luyện tập"
+
+# 2. Kiểm tra mục Bảng chữ cái & Chữ số (Fingerspelling)
+- assertVisible: "Bảng chữ cái & Chữ số"
+- tapOn: "Bảng chữ cái & Chữ số"
+
+# 3. Kiểm tra giao diện Fingerspelling
+- assertVisible: "Đánh vần ngón tay (Fingerspelling)"
+- assertVisible: "A"
+
+# 4. Mở ký tự chữ A để xem video và kiểm tra Turtle Mode 0.5x
+- tapOn: "A"
+- assertVisible: "Chữ A"
+
+# Chuyển đổi tốc độ video
+- tapOn:
+    text: ".*Chậm 0.5x.*"
+- tapOn:
+    text: ".*Tốc độ 1x.*"
+
+# 5. Mở chế độ Soi gương (The Mirror Tool)
+- tapOn: "Tập theo mẫu với camera"
+- assertVisible: "Tập theo mẫu"
+- assertVisible: "Camera như một tấm gương"
+
+# 6. Quay lại màn hình trước
+- back
+- back

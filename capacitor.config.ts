@@ -7,6 +7,9 @@ const config: CapacitorConfig = {
   backgroundColor: "#f4f8ff",
   android: { allowMixedContent: false },
   ios: { contentInset: "never" },
+  server: {
+    androidScheme: "https",
+  },
 };
 
 export default config;

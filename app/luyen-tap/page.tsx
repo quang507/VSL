@@ -3,7 +3,7 @@
 import { asset } from "@/lib/base";
 import { useMemo } from "react";
 import Link from "next/link";
-import { Copy, ArrowRight, Camera, ChevronRight, Languages, RotateCcw, Zap } from "lucide-react";
+import { Copy, ArrowRight, Camera, ChevronRight, Languages, RotateCcw, Zap, Hash } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { Btn } from "@/components/ui";
 import { useLabels } from "@/lib/useLabels";
@@ -116,6 +116,20 @@ export default function PracticeHub() {
           </Link>
         </div>
       </div>
+
+      <Link href="/tu-dien?tab=abc" className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <span className="icon-circle" style={{ width: 48, height: 48, background: "var(--surface)", boxShadow: "var(--shadow-tile)" }}>
+          <Hash size={24} color="var(--org)" aria-hidden />
+        </span>
+        <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
+          <span className="badge badge--s badge--yel" style={{ width: "fit-content" }}>
+            Fingerspelling
+          </span>
+          <span className="h4">Bảng chữ cái & Chữ số</span>
+          <span className="t-sub">38 chữ cái & dấu, 24 số · nền tảng đánh vần ngón tay</span>
+        </span>
+        <ChevronRight size={20} aria-hidden />
+      </Link>
 
       <Link href="/cau" className="tile t-pur" style={{ flexDirection: "row", gap: 8, padding: "18px 0 0 18px", alignItems: "flex-start" }}>
         <span className="col grow" style={{ gap: 4, paddingBottom: 18, minWidth: 0 }}>
