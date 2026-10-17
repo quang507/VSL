@@ -3,7 +3,7 @@
 import { asset } from "@/lib/base";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, X, CheckCircle2, ChevronRight, Camera, ArrowRight, AlarmClock, RotateCcw, Zap, WifiOff } from "lucide-react";
+import { Search, X, CheckCircle2, ChevronRight, Camera, ArrowRight, AlarmClock, RotateCcw, Zap, WifiOff, Play, Timer, Volume2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LoopVideo from "@/components/LoopVideo";
 import { Segmented } from "@/components/ui";
@@ -16,7 +16,8 @@ import { practiceUrl } from "@/lib/nav";
 import { thumbUrl } from "@/lib/theme";
 import { useSaved } from "@/lib/saved";
 import { useOnline } from "@/lib/useOnline";
-import { QIPEDC_SOURCE, fold, useQipedc, wordUrl, type QEntry } from "@/lib/qipedc";
+import { speakVietnamese } from "@/lib/feedback";
+import { QIPEDC_SOURCE, fold, useQipedc, wordUrl, videoUrl, preferredVariant, type QEntry } from "@/lib/qipedc";
 
 // Chữ cái đầu theo bảng chữ Việt: bỏ dấu thanh, giữ Ă Â Đ Ê Ô Ơ Ư
 const initial = (w: string) =>
@@ -128,6 +129,49 @@ export default function Dictionary() {
     return (f ? base.filter((w) => fold(w).includes(f)) : base).slice().sort((a, b) => a.localeCompare(b, "vi"));
   }, [labels, lessons, topic, f]);
   const groups = useMemo(() => groupByLetter(camList), [camList]);
+
+  // ---- Fingerspelling Speed Trainer State ----
+  const [trainerActive, setTrainerActive] = useState(false);
+  const [trainerTarget, setTrainerTarget] = useState<QEntry | null>(null);
+  const [trainerChoices, setTrainerChoices] = useState<string[]>([]);
+  const [trainerScore, setTrainerScore] = useState(0);
+  const [trainerStreak, setTrainerStreak] = useState(0);
+  const [trainerFeedback, setTrainerFeedback] = useState<"ok" | "no" | null>(null);
+
+  const startNextTrainerRound = (entriesPool: QEntry[]) => {
+    if (!entriesPool.length) return;
+    const pool = entriesPool.filter((e) => e.k === 2 || e.k === 1);
+    const target = pool[Math.floor(Math.random() * pool.length)];
+    const otherPool = pool.filter((e) => e.w !== target.w);
+    const distractors: string[] = [];
+    while (distractors.length < 3 && otherPool.length > 0) {
+      const rand = otherPool[Math.floor(Math.random() * otherPool.length)].w;
+      if (!distractors.includes(rand)) distractors.push(rand);
+    }
+    const shuffled = [target.w, ...distractors].sort(() => Math.random() - 0.5);
+    setTrainerTarget(target);
+    setTrainerChoices(shuffled);
+    setTrainerFeedback(null);
+  };
+
+  const handleTrainerAnswer = (chosen: string) => {
+    if (!trainerTarget || trainerFeedback !== null) return;
+    if (chosen === trainerTarget.w) {
+      setTrainerScore((s) => s + 10);
+      setTrainerStreak((st) => st + 1);
+      setTrainerFeedback("ok");
+      speakVietnamese(trainerTarget.w);
+      setTimeout(() => {
+        startNextTrainerRound(entries);
+      }, 700);
+    } else {
+      setTrainerStreak(0);
+      setTrainerFeedback("no");
+      setTimeout(() => {
+        setTrainerFeedback(null);
+      }, 900);
+    }
+  };
 
   // Kết quả tìm trong từ điển Bộ GD&ĐT: khớp đầu từ trước, rồi khớp giữa
   const qHits = useMemo(() => {
@@ -402,9 +446,134 @@ export default function Dictionary() {
             </section>
           ) : tab === "abc" ? (
             <section className="col" style={{ gap: 20 }} aria-label="Bảng chữ cái và chữ số ngón tay">
-              <div className="card" style={{ gap: 6, background: "var(--brand-soft)", borderColor: "transparent", padding: "16px 18px" }}>
-                <span className="h4" style={{ color: "var(--acc)" }}>Đánh vần ngón tay (Fingerspelling)</span>
-                <span className="bm" style={{ color: "var(--txt)", fontSize: 15, lineHeight: 1.5 }}>
+              {/* Fingerspelling Speed Trainer */}
+              <div
+                className="card"
+                style={{
+                  gap: 12,
+                  background: trainerActive ? "var(--surface)" : "var(--brand-soft)",
+                  borderColor: trainerActive ? "var(--acc)" : "transparent",
+                  padding: "16px 18px",
+                  boxShadow: "var(--shadow-tile)",
+                }}
+              >
+                {!trainerActive ? (
+                  <div className="col" style={{ gap: 8 }}>
+                    <div className="row row--between" style={{ alignItems: "center" }}>
+                      <span className="h4" style={{ color: "var(--acc)" }}>Luyện phản xạ ngón tay (Speed Trainer)</span>
+                      <span className="badge badge--s badge--acc">Lingvano Mode</span>
+                    </div>
+                    <span className="bm" style={{ color: "var(--txt)", fontSize: 14 }}>
+                      Xem video ngón tay chuyển động và bấm chọn chữ cái tương ứng trong tích tắc để rèn phản xạ giao tiếp thực tế.
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--md"
+                      style={{ marginTop: 4, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8 }}
+                      onClick={() => {
+                        setTrainerActive(true);
+                        setTrainerScore(0);
+                        setTrainerStreak(0);
+                        startNextTrainerRound(entries);
+                      }}
+                    >
+                      <Play size={18} fill="currentColor" aria-hidden />
+                      Bắt đầu luyện phản xạ
+                    </button>
+                  </div>
+                ) : (
+                  <div className="col" style={{ gap: 14 }}>
+                    <div className="row row--between" style={{ alignItems: "center" }}>
+                      <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                        <Timer size={20} color="var(--acc)" aria-hidden />
+                        <span className="bb" style={{ color: "var(--acc)" }}>Chuỗi: {trainerStreak} 🔥</span>
+                        <span className="sm num" style={{ color: "var(--txt2)" }}>Điểm: {trainerScore}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn--tertiary btn--sm"
+                        onClick={() => setTrainerActive(false)}
+                      >
+                        Dừng lại
+                      </button>
+                    </div>
+
+                    {trainerTarget && (
+                      <div className="col" style={{ alignItems: "center", gap: 12 }}>
+                        {/* Video ký tự */}
+                        <div
+                          style={{
+                            width: "100%",
+                            maxWidth: 320,
+                            aspectRatio: "16 / 9",
+                            background: "#111",
+                            borderRadius: 16,
+                            overflow: "hidden",
+                            position: "relative",
+                          }}
+                        >
+                          {(() => {
+                            const sense = trainerTarget.s[0];
+                            const vKey = preferredVariant(sense, profile.region);
+                            const vidId = sense.v[vKey as keyof typeof sense.v];
+                            return vidId ? (
+                              <video
+                                key={vidId}
+                                src={videoUrl(vidId)}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  transform: profile.leftHanded ? "scaleX(-1)" : undefined,
+                                }}
+                              />
+                            ) : null;
+                          })()}
+                        </div>
+
+                        {/* 4 Lựa chọn phản xạ */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 320 }}>
+                          {trainerChoices.map((choice) => (
+                            <button
+                              key={choice}
+                              type="button"
+                              className="btn btn--secondary btn--lg"
+                              style={{
+                                fontSize: 20,
+                                fontWeight: 700,
+                                minHeight: 52,
+                                background:
+                                  trainerFeedback === "ok" && choice === trainerTarget.w
+                                    ? "var(--pos)"
+                                    : "var(--surface)",
+                                color:
+                                  trainerFeedback === "ok" && choice === trainerTarget.w
+                                    ? "#fff"
+                                    : "var(--txt)",
+                                borderColor:
+                                  trainerFeedback === "ok" && choice === trainerTarget.w
+                                    ? "var(--pos)"
+                                    : "var(--edge)",
+                              }}
+                              onClick={() => handleTrainerAnswer(choice)}
+                            >
+                              {choice}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="card" style={{ gap: 6, background: "var(--surface)", padding: "16px 18px", boxShadow: "var(--shadow-tile)" }}>
+                <span className="h4" style={{ color: "var(--txt)" }}>Tra cứu ngón tay (Fingerspelling)</span>
+                <span className="bm" style={{ color: "var(--txt2)", fontSize: 14, lineHeight: 1.5 }}>
                   Nền tảng giao tiếp thiết yếu để đánh vần tên riêng, địa chỉ và chữ số. Chọn ký tự để xem video mẫu chuẩn Bộ GD&ĐT, tua chậm 0.5x và tự đối chiếu qua camera (Soi gương).
                 </span>
               </div>

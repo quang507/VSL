@@ -3,7 +3,7 @@
 import { asset } from "@/lib/base";
 import { useMemo } from "react";
 import Link from "next/link";
-import { Zap, CheckCircle2, Bookmark, Star, Lock, Trophy, Flame, Sprout, BookOpen, GraduationCap, Gem, Target, Flag, ArrowRight, Aperture, Settings } from "lucide-react";
+import { Zap, CheckCircle2, Bookmark, Star, Lock, Trophy, Flame, Sprout, BookOpen, GraduationCap, Gem, Target, Flag, ArrowRight, Aperture, Settings, Shield } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { Bar } from "@/components/ui";
 import { useLabels } from "@/lib/useLabels";
@@ -84,6 +84,13 @@ export default function ProfilePage() {
           <span className="h4 num">{dayStreak(progress)} ngày</span>
           <span className="t-sub" style={{ fontWeight: 600 }}>
             Chuỗi học
+          </span>
+        </div>
+        <div className="stat-tile" style={{ background: "var(--cya-soft)" }}>
+          <Shield size={22} fill="var(--cya-txt)" color="var(--cya-txt)" aria-hidden />
+          <span className="h4 num">{progress.streakFreeze ?? 2} khiên</span>
+          <span className="t-sub" style={{ fontWeight: 600 }}>
+            Bảo vệ chuỗi
           </span>
         </div>
         <div className="stat-tile" style={{ background: "var(--grn-soft)" }}>

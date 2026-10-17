@@ -2,13 +2,13 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft } from "lucide-react";
+import { Camera, Eye, SkipForward, Lightbulb, Award, Info, ChevronLeft, Volume2, Share2 } from "lucide-react";
 import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import { recordAttempt, loadProgress, countLearned } from "@/lib/progress";
 import { findLesson } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { practiceUrl, lessonUrl } from "@/lib/nav";
-import { signal } from "@/lib/feedback";
+import { signal, speakVietnamese } from "@/lib/feedback";
 import { BADGES, earnedBadgeIds } from "@/lib/badges";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
@@ -129,6 +129,26 @@ function PracticeInner() {
   const confPct = pred ? Math.round(pred.confidence * 100) : 0;
   const badge = BADGES.find((b) => b.id === newBadge);
 
+  const shareWord = async () => {
+    if (typeof window === "undefined" || !target) return;
+    const url = window.location.href;
+    const shareData = {
+      title: `Học ký hiệu từ: ${target}`,
+      text: `Cùng học từ ngôn ngữ ký hiệu “${target}” với tôi nhé!`,
+      url,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Đã sao chép link bài học để gửi cho người thân!");
+      } catch {}
+    }
+  };
+
   return (
     <main className="app" style={{ gap: 18 }}>
       <Flash kind={flash.kind} tick={flash.tick} />
@@ -148,14 +168,38 @@ function PracticeInner() {
           <span className="sm">{lesson ? `${lesson.title} · ${idx + 1}/${lesson.words.length}` : "Luyện ký hiệu"}</span>
           {lesson && <Bar pct={((idx + (correct ? 1 : 0)) / lesson.words.length) * 100} h={8} />}
         </div>
-        {target && <SaveBtn word={target} />}
+        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+          <button
+            type="button"
+            className="icon-circle"
+            style={{ width: 44, height: 44, border: "none", background: "var(--surface)", boxShadow: "var(--shadow-tile)", color: "var(--txt)" }}
+            onClick={shareWord}
+            aria-label="Chia sẻ bài học cho người thân"
+          >
+            <Share2 size={20} aria-hidden />
+          </button>
+          {target && <SaveBtn word={target} />}
+        </div>
       </div>
 
       <div className="col col--tight">
         <span className="bm">
           {step === "demo" ? "Xem mẫu rồi làm theo" : step === "mirror" ? "Soi gương và uốn nắn dáng tay (không chấm điểm)" : "Đến lượt bạn ký (AI tự chấm)"}
         </span>
-        <h1 className="d4">{target || "—"}</h1>
+        <div className="row" style={{ gap: 12, alignItems: "center" }}>
+          <h1 className="d4" style={{ margin: 0 }}>{target || "—"}</h1>
+          {target && (
+            <button
+              type="button"
+              className="icon-circle"
+              style={{ width: 44, height: 44, border: "none", background: "var(--brand-soft)", color: "var(--acc)", flex: "none" }}
+              onClick={() => speakVietnamese(target)}
+              aria-label={`Nghe phát âm từ “${target}”`}
+            >
+              <Volume2 size={22} aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
 
       <Segmented

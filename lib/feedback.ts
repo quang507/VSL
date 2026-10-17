@@ -74,3 +74,18 @@ export function signal(ok: boolean, o: FeedbackOpts) {
 // Giữ API cũ để không vỡ chỗ khác đang gọi
 export const feedbackCorrect = (on: boolean) => signal(true, { sound: on, vibrate: on });
 export const feedbackWrong = (on: boolean) => signal(false, { sound: on, vibrate: on });
+
+/** Phát âm tiếng Việt bằng giọng nói (cho người nghe trong gia đình). */
+export function speakVietnamese(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "vi-VN";
+    const vi = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith("vi"));
+    if (vi) u.voice = vi;
+    window.speechSynthesis.speak(u);
+  } catch {
+    /* bỏ qua nếu browser chặn */
+  }
+}

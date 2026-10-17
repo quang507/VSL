@@ -18,6 +18,7 @@ export interface Progress {
   days: Record<string, number>; // "YYYY-MM-DD" -> số lần đúng trong ngày
   dailyGoal: number; // mục tiêu số từ đúng mỗi ngày
   soundOn: boolean; // bật âm thanh + rung
+  streakFreeze?: number; // khiên bảo vệ chuỗi ngày học (mặc định tặng 2 khiên)
 }
 
 export function emptyProgress(): Progress {
@@ -29,6 +30,7 @@ export function emptyProgress(): Progress {
     days: {},
     dailyGoal: 5,
     soundOn: true,
+    streakFreeze: 2,
   };
 }
 
@@ -115,14 +117,26 @@ export function todayCount(p: Progress): number {
 
 // Số ngày liên tiếp đạt mục tiêu (tính lùi từ hôm nay; nếu hôm nay chưa
 // đạt thì tính lùi từ hôm qua để streak chưa bị mất trong ngày).
+// Có tích hợp khiên bảo vệ (Streak Freeze): nếu hụt 1 ngày, khiên sẽ tự kích hoạt bảo toàn chuỗi.
 export function dayStreak(p: Progress): number {
   const goal = p.dailyGoal;
   let cursor = dayKey();
   if ((p.days[cursor] ?? 0) < goal) cursor = addDays(cursor, -1);
   let n = 0;
-  while ((p.days[cursor] ?? 0) >= goal) {
-    n += 1;
-    cursor = addDays(cursor, -1);
+  let freezeUsed = 0;
+  const availableFreeze = p.streakFreeze ?? 2;
+
+  while (true) {
+    if ((p.days[cursor] ?? 0) >= goal) {
+      n += 1;
+      cursor = addDays(cursor, -1);
+    } else if (n > 0 && freezeUsed < availableFreeze) {
+      // Hụt 1 ngày sau khi đã có streak -> Kích hoạt khiên bảo vệ
+      freezeUsed += 1;
+      cursor = addDays(cursor, -1);
+    } else {
+      break;
+    }
   }
   return n;
 }

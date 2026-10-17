@@ -2,11 +2,12 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Camera, Gauge, WifiOff } from "lucide-react";
+import { Camera, Gauge, WifiOff, Volume2, Share2 } from "lucide-react";
 import { Btn, TopBar } from "@/components/ui";
 import { useProfile } from "@/lib/profile";
 import { useLabels } from "@/lib/useLabels";
 import { practiceUrl } from "@/lib/nav";
+import { speakVietnamese } from "@/lib/feedback";
 import { QIPEDC_SOURCE, VARIANT_NAME, fold, preferredVariant, useQipedc, variantsOf, videoUrl, wordUrl } from "@/lib/qipedc";
 import Link from "next/link";
 import SaveBtn from "@/components/SaveBtn";
@@ -59,12 +60,59 @@ function WordInner() {
   const variants = variantsOf(sense);
   const id = sense.v[variant as keyof typeof sense.v];
 
+  const shareWord = async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    const shareData = {
+      title: `Học ký hiệu: ${entry.w}`,
+      text: `Cùng học từ ngôn ngữ ký hiệu “${entry.w}” với tôi nhé!`,
+      url,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Đã sao chép link từ để gửi cho người thân!");
+      } catch {}
+    }
+  };
+
   return (
     <main className="app">
-      <TopBar back="/tu-dien" right={<SaveBtn word={entry.w} />} />
+      <TopBar
+        back="/tu-dien"
+        right={
+          <div className="row" style={{ gap: 8, alignItems: "center" }}>
+            <button
+              type="button"
+              className="icon-circle"
+              style={{ width: 44, height: 44, border: "none", background: "var(--surface)", boxShadow: "var(--shadow-tile)", color: "var(--txt)" }}
+              onClick={shareWord}
+              aria-label="Chia sẻ từ này cho người thân"
+            >
+              <Share2 size={20} aria-hidden />
+            </button>
+            <SaveBtn word={entry.w} />
+          </div>
+        }
+      />
       <header className="col col--tight">
         {sense.t && <span className="eyebrow">{sense.t}</span>}
-        <h1 className="d4">{entry.w}</h1>
+        <div className="row" style={{ gap: 12, alignItems: "center" }}>
+          <h1 className="d4" style={{ margin: 0 }}>{entry.w}</h1>
+          <button
+            type="button"
+            className="icon-circle"
+            style={{ width: 44, height: 44, border: "none", background: "var(--brand-soft)", color: "var(--acc)", flex: "none" }}
+            onClick={() => speakVietnamese(entry.w)}
+            aria-label={`Nghe phát âm từ “${entry.w}”`}
+          >
+            <Volume2 size={22} aria-hidden />
+          </button>
+        </div>
       </header>
 
       {entry.s.length > 1 && (
