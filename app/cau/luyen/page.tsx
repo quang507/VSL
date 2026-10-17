@@ -88,11 +88,11 @@ function Inner() {
               <button
                 type="button"
                 className="icon-circle"
-                style={{ width: 36, height: 36, border: "none", background: "var(--pur-soft)", color: "var(--pur-txt)" }}
+                style={{ width: 44, height: 44, border: "none", background: "var(--pur-soft)", color: "var(--pur-txt)" }}
                 onClick={() => speakVietnamese(meta.dialogue.partnerPrompt)}
                 aria-label="Nghe người thân nói câu này"
               >
-                <Volume2 size={18} aria-hidden />
+                <Volume2 size={20} aria-hidden />
               </button>
             </div>
             <span className="bb" style={{ color: "var(--txt)", fontSize: 15 }}>{meta.dialogue.partnerPrompt}</span>

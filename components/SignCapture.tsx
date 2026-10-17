@@ -105,7 +105,7 @@ function AutoCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked
 }
 
 function ManualCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked, attempted, errorNote, manualLabel, corner }: Props) {
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, faceSeen, modelReady, cameraError, start } = useSignPractice(modelUrl, labelsUrl, features);
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, faceSeen, modelReady, cameraError, wavingDetected, start } = useSignPractice(modelUrl, labelsUrl, features);
   const [noHands, setNoHands] = useState(false);
   const busy = phase === "loading" || phase === "countdown" || phase === "recording";
 
@@ -115,6 +115,13 @@ function ManualCapture({ modelUrl, labelsUrl, features = "hands", onResult, lock
     if (!r) setNoHands(true);
     onResult(r);
   };
+
+  // Kích hoạt rảnh tay (Hands-free Gesture): Giơ bàn tay xòe vẫy chào trước camera thì tự bắt đầu đếm nhịp
+  useEffect(() => {
+    if (wavingDetected && phase === "ready" && !busy && !locked) {
+      void go();
+    }
+  }, [wavingDetected, phase, busy, locked]);
 
   return (
     <>

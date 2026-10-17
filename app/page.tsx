@@ -167,12 +167,11 @@ export default function Home() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "var(--txt3)",
+                        color: "var(--txt2)",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
                         border: "3px solid var(--surface)",
                       }}
                       title={`${w} (Chưa mở)`}
-                      aria-label={`${w}, chưa mở`}
                     >
                       <Lock size={24} aria-hidden />
                     </div>
@@ -215,7 +214,7 @@ export default function Home() {
                     style={{
                       fontSize: 13,
                       background: isCur ? "var(--brand-soft)" : "var(--surface)",
-                      color: isCur ? "var(--acc)" : locked ? "var(--txt3)" : "var(--txt)",
+                      color: isCur ? "var(--blu-txt)" : locked ? "var(--txt2)" : "var(--txt)",
                       padding: "2px 10px",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-tile)",

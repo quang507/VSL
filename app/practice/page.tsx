@@ -280,25 +280,30 @@ function PracticeInner() {
       {step === "demo" ? (
         <>
           <SampleMedia word={target} slow={slow} />
-          <div className="card" style={{ gap: 10 }}>
-            <div className="row">
-              <IconCircle icon={Lightbulb} size={36} bg="var(--yel-soft)" fg="var(--yel-txt)" square />
-              <span className="bb">Mẹo để camera chấm chuẩn</span>
+          <div className="card" style={{ gap: 12, padding: "16px 18px", background: "var(--surface)", boxShadow: "var(--shadow-tile)" }}>
+            <div className="row row--between" style={{ alignItems: "center" }}>
+              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                <IconCircle icon={Lightbulb} size={36} bg="var(--yel-soft)" fg="var(--yel-txt)" square />
+                <span className="bb">Tập rảnh tay (Hands-free)</span>
+              </div>
+              <span className="badge badge--s badge--acc">Mẹo thông minh</span>
             </div>
-            {[
-              "Lùi ra khoảng 1 mét, đủ sáng, để máy thấy từ đầu đến bụng",
-              "Ký đủ cả hai tay như trong mẫu, kể cả tay đặt yên",
-              auto ? "Cứ ký theo mẫu, app tự chấm khi bạn dừng tay. Không cần bấm nút" : "Bấm Bắt đầu, đếm 3-2-1 rồi ký trong khoảng 2,5 giây",
-            ].map((t, i) => (
-              <div key={t} className="row" style={{ gap: 10 }}>
-                <span className="icon-circle" style={{ width: 26, height: 26, background: "var(--brand)", color: "#fff", fontWeight: 700, fontSize: 13 }}>
-                  {i + 1}
-                </span>
-                <span className="bm" style={{ color: "var(--txt)" }}>
-                  {t}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="col" style={{ gap: 4, background: "var(--canvas)", padding: "10px 12px", borderRadius: 14 }}>
+                <span style={{ fontSize: 22 }}>👋</span>
+                <span className="bb" style={{ fontSize: 13, color: "var(--acc)" }}>Vẫy tay bắt đầu</span>
+                <span className="sm" style={{ fontSize: 12, color: "var(--txt2)", lineHeight: 1.3 }}>
+                  Giơ bàn tay xòe trước camera để máy tự đếm nhịp quay.
                 </span>
               </div>
-            ))}
+              <div className="col" style={{ gap: 4, background: "var(--canvas)", padding: "10px 12px", borderRadius: 14 }}>
+                <span style={{ fontSize: 22 }}>🧍‍♂️</span>
+                <span className="bb" style={{ fontSize: 13, color: "var(--acc)" }}>Lùi 1 mét</span>
+                <span className="sm" style={{ fontSize: 12, color: "var(--txt2)", lineHeight: 1.3 }}>
+                  Đứng đủ xa để camera nhìn thấy từ đầu đến bụng và hai bàn tay.
+                </span>
+              </div>
+            </div>
           </div>
           <div className="row" style={{ gap: 10 }}>
             <Btn icon={Camera} onClick={() => setStep("practice")} style={{ flex: 1 }}>
@@ -329,25 +334,69 @@ function PracticeInner() {
             corner={target ? <LoopVideo word={target} label={`Video mẫu “${target}”`} style={{ width: "100%", height: "100%", borderRadius: 0 }} /> : undefined}
           />
 
+          {/* Báo hiệu thị giác góc rộng (Far-Distance Feedback Banner) cho người Điếc đứng xa 1.5m */}
           {pred && (
-            <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
-              <Ring pct={confPct} color={correct ? "var(--grn)" : "var(--org)"} size={76} thick={9}>
+            <div
+              style={{
+                width: "100%",
+                padding: "16px 20px",
+                borderRadius: 20,
+                background: correct ? "var(--pos)" : "var(--neg)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                boxShadow: correct
+                  ? "0 10px 30px rgba(0, 99, 38, 0.35)"
+                  : "0 10px 30px rgba(149, 19, 0, 0.35)",
+                animation: "pop 0.25s ease-out",
+              }}
+              aria-live="assertive"
+            >
+              <div className="row" style={{ gap: 14, alignItems: "center" }}>
+                <span
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 26,
+                  }}
+                  aria-hidden
+                >
+                  {correct ? "✓" : "✗"}
+                </span>
+                <div className="col col--tight">
+                  <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>
+                    {correct ? "CHÍNH XÁC! +10 XP" : "CHƯA ĐÚNG"}
+                  </span>
+                  <span style={{ fontSize: 14, opacity: 0.9 }}>
+                    {correct ? `Ký chuẩn: ${target}` : `AI nhận thấy: ${pred.label}`}
+                  </span>
+                </div>
+              </div>
+              <span style={{ fontSize: 24, fontWeight: 800 }}>{confPct}%</span>
+            </div>
+          )}
+
+          {pred && !correct && (
+            <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid var(--red)` }}>
+              <Ring pct={confPct} color="var(--org)" size={76} thick={9}>
                 <span className="bb">{confPct}%</span>
               </Ring>
               <div className="col col--tight grow">
-                <span className="h4">{correct ? "Đúng rồi! +10 XP" : "Chưa đúng"}</span>
-                {correct ? (
-                  <span className="bm">Ký hiệu rõ ràng, tiếp tục nào.</span>
-                ) : (
-                  <div className="col" style={{ gap: 6, marginTop: 2 }}>
-                    <span className="bm" style={{ fontSize: 14 }}>
-                      AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b> ({confPct}%)
-                    </span>
-                    <span className="sm" style={{ color: "var(--org-txt)", background: "var(--yel-soft)", padding: "6px 10px", borderRadius: 8, lineHeight: 1.4 }}>
-                      💡 <b>Gợi ý uốn tay:</b> Đưa tay vào giữa khung hình, đối chiếu với video góc màn hình và giữ ổn định hình tay 1-2 giây.
-                    </span>
-                  </div>
-                )}
+                <span className="h4">Chưa đúng</span>
+                <div className="col" style={{ gap: 6, marginTop: 2 }}>
+                  <span className="bm" style={{ fontSize: 14 }}>
+                    AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b> ({confPct}%)
+                  </span>
+                  <span className="sm" style={{ color: "var(--org-txt)", background: "var(--yel-soft)", padding: "6px 10px", borderRadius: 8, lineHeight: 1.4 }}>
+                    💡 <b>Gợi ý uốn tay:</b> Đưa tay vào giữa khung hình, đối chiếu với video góc màn hình và giữ ổn định hình tay 1-2 giây.
+                  </span>
+                </div>
               </div>
             </section>
           )}

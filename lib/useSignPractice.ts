@@ -36,6 +36,27 @@ export function computeHint(hands: HandResult[]): Hint {
   return "ok";
 }
 
+/** Nhận diện bàn tay mở xòe ngón giơ cao (Open Palm / Vẫy tay chào) để kích hoạt không chạm */
+export function isOpenPalmWave(hands: HandResult[]): boolean {
+  if (!hands.length) return false;
+  for (const h of hands) {
+    const pts = h.points;
+    if (pts.length < 21) continue;
+    // Bàn tay giơ ở nửa trên khung hình (cổ tay y < 0.7)
+    if (pts[0].y > 0.75) continue;
+    // Các đầu ngón tay (4, 8, 12, 16, 20) phải cao hơn các khớp gốc MCP (2, 5, 9, 13, 17)
+    const fingersUp =
+      pts[8].y < pts[6].y &&
+      pts[12].y < pts[10].y &&
+      pts[16].y < pts[14].y &&
+      pts[20].y < pts[18].y;
+    // Khoảng cách xòe giữa ngón trỏ và ngón út
+    const span = Math.abs(pts[4].x - pts[20].x);
+    if (fingersUp && span > 0.1) return true;
+  }
+  return false;
+}
+
 /** modelUrl/labelsUrl mặc định = model 100 từ đơn; truyền model khác cho "Câu giao tiếp" */
 export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL, features: FeatureKind = "hands") {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -55,6 +76,8 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   const [hint, setHint] = useState<Hint>("none");
   const [modelReady, setModelReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [wavingDetected, setWavingDetected] = useState(false);
+  const waveFramesRef = useRef(0);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -126,6 +149,20 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
               hintRef.current = h;
               setHint(h);
             }
+
+            // Nhận diện giơ bàn tay vẫy chào để kích hoạt rảnh tay
+            if (isOpenPalmWave(hands)) {
+              waveFramesRef.current += 1;
+              if (waveFramesRef.current >= 4) {
+                setWavingDetected(true);
+              }
+            } else {
+              waveFramesRef.current = Math.max(0, waveFramesRef.current - 1);
+              if (waveFramesRef.current === 0) {
+                setWavingDetected(false);
+              }
+            }
+
             if (recordingRef.current && hands.length > 0) {
               framesRef.current.push(buildFrameFeatures(hands, v.videoHeight / v.videoWidth, fd ? faces.ref() : undefined));
             }
@@ -193,6 +230,7 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
     faceSeen,
     modelReady,
     cameraError,
+    wavingDetected,
     start,
   };
 }
