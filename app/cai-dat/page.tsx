@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check, Sparkles, FlipHorizontal } from "lucide-react";
+import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check, Sparkles, FlipHorizontal, Bell } from "lucide-react";
 import { Btn, Dialog, IconCircle, Segmented, Toggle, TopBar } from "@/components/ui";
 import { REGIONS, useProfile, resetProfile } from "@/lib/profile";
 import { useProgress } from "@/lib/useProgress";
@@ -78,6 +78,47 @@ export default function Settings() {
           title="Thuận tay trái"
           sub="Tự động lật gương tất cả video mẫu trong toàn bộ app"
           right={<Toggle label="Thuận tay trái" on={profile.leftHanded} onChange={(v) => update({ leftHanded: v })} />}
+        />
+        <Row
+          icon={Bell}
+          bg="var(--yel-soft)"
+          fg="var(--yel-txt)"
+          title="Nhắc nhở học hàng ngày"
+          sub={profile.reminder ? `Đã đặt nhắc lúc ${profile.reminderTime} mỗi ngày` : "Dành 5 phút mỗi ngày cùng người thân"}
+          right={
+            <div className="row" style={{ gap: 8, alignItems: "center" }}>
+              {profile.reminder && (
+                <input
+                  type="time"
+                  value={profile.reminderTime}
+                  onChange={(e) => update({ reminderTime: e.target.value })}
+                  aria-label="Giờ nhắc học"
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: 8,
+                    border: "1.5px solid var(--line)",
+                    background: "var(--surface)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    minHeight: 36,
+                    color: "var(--txt)",
+                  }}
+                />
+              )}
+              <Toggle
+                label="Nhắc nhở học hàng ngày"
+                on={profile.reminder}
+                onChange={async (v) => {
+                  if (v && typeof window !== "undefined" && "Notification" in window) {
+                    try {
+                      await Notification.requestPermission();
+                    } catch {}
+                  }
+                  update({ reminder: v });
+                }}
+              />
+            </div>
+          }
         />
       </div>
 

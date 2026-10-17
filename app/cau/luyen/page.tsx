@@ -132,9 +132,14 @@ function Inner() {
               <div className="col col--tight grow">
                 <span className="h4">{correct ? "Đúng rồi! +10 XP" : "Chưa đúng"}</span>
                 {!correct && (
-                  <span className="bm">
-                    AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b>
-                  </span>
+                  <div className="col" style={{ gap: 6, marginTop: 2 }}>
+                    <span className="bm" style={{ fontSize: 14 }}>
+                      AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b>
+                    </span>
+                    <span className="sm" style={{ color: "var(--org-txt)", background: "var(--yel-soft)", padding: "6px 10px", borderRadius: 8, lineHeight: 1.4 }}>
+                      💡 <b>Gợi ý:</b> Ký liền mạch cả câu và giữ bàn tay trong khung hình suốt 2.5 giây.
+                    </span>
+                  </div>
                 )}
               </div>
             </section>

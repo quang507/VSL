@@ -15,6 +15,8 @@ export interface Profile {
   slowVideo: boolean; // phát video mẫu chậm mặc định
   autoSign: boolean; // tự chấm khi ký, không cần bấm nút (mặc định bật)
   leftHanded: boolean; // thuận tay trái: tự động lật gương toàn bộ video mẫu
+  reminder: boolean; // nhắc nhở học hàng ngày
+  reminderTime: string; // giờ nhắc học hàng ngày (vd: 20:00)
 }
 
 export const REGIONS: { id: Region; name: string; sub: string }[] = [
@@ -25,7 +27,18 @@ export const REGIONS: { id: Region; name: string; sub: string }[] = [
 ];
 
 export function emptyProfile(): Profile {
-  return { name: "", region: "all", onboarded: false, vibrate: true, flash: true, slowVideo: false, autoSign: true, leftHanded: false };
+  return {
+    name: "",
+    region: "all",
+    onboarded: false,
+    vibrate: true,
+    flash: true,
+    slowVideo: false,
+    autoSign: true,
+    leftHanded: false,
+    reminder: false,
+    reminderTime: "20:00",
+  };
 }
 
 export function loadProfile(): Profile {

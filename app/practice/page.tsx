@@ -228,13 +228,18 @@ function PracticeInner() {
               </Ring>
               <div className="col col--tight grow">
                 <span className="h4">{correct ? "Đúng rồi! +10 XP" : "Chưa đúng"}</span>
-                <span className="bm">
-                  {correct ? "Ký hiệu rõ ràng, tiếp tục nào." : (
-                    <>
-                      AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b>. Xem lại mẫu rồi thử lần nữa.
-                    </>
-                  )}
-                </span>
+                {correct ? (
+                  <span className="bm">Ký hiệu rõ ràng, tiếp tục nào.</span>
+                ) : (
+                  <div className="col" style={{ gap: 6, marginTop: 2 }}>
+                    <span className="bm" style={{ fontSize: 14 }}>
+                      AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b> ({confPct}%)
+                    </span>
+                    <span className="sm" style={{ color: "var(--org-txt)", background: "var(--yel-soft)", padding: "6px 10px", borderRadius: 8, lineHeight: 1.4 }}>
+                      💡 <b>Gợi ý uốn tay:</b> Đưa tay vào giữa khung hình, đối chiếu với video góc màn hình và giữ ổn định hình tay 1-2 giây.
+                    </span>
+                  </div>
+                )}
               </div>
             </section>
           )}

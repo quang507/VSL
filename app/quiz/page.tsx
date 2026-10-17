@@ -1,11 +1,12 @@
 "use client";
 
 import { asset } from "@/lib/base";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { X, ArrowRight, SkipForward, RotateCcw } from "lucide-react";
+import { X, ArrowRight, SkipForward, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
 import { CONFIDENCE_THRESHOLD, MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import SignCapture from "@/components/SignCapture";
+import LoopVideo from "@/components/LoopVideo";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import { useLabels } from "@/lib/useLabels";
 import { recordAttempt, loadProgress, dueWords } from "@/lib/progress";
@@ -13,9 +14,10 @@ import { signal } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
 import Flash from "@/components/Flash";
-import { Bar, Btn, IconBtn, Pill, Ring, Sticker } from "@/components/ui";
+import { Bar, Btn, IconBtn, Pill, Ring, Sticker, Segmented } from "@/components/ui";
 
 const QUIZ_LEN = 8;
+type QuizMode = "choice" | "camera";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -36,6 +38,8 @@ function QuizInner() {
   const [results, setResults] = useState<boolean[]>([]);
   const [pred, setPred] = useState<Prediction | null>(null);
   const [graded, setGraded] = useState(false);
+  const [quizMode, setQuizMode] = useState<QuizMode>("choice");
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
 
   const buildDeck = (ls: string[]) => (review ? dueWords(loadProgress(), ls) : shuffle(ls).slice(0, QUIZ_LEN));
@@ -48,6 +52,25 @@ function QuizInner() {
   const target = deck[idx] ?? "";
   const finished = deck.length > 0 && idx >= deck.length;
   const score = results.filter(Boolean).length;
+
+  const choices = useMemo(() => {
+    if (!target || !labels.length) return [];
+    const pool = labels.filter((l) => l !== target);
+    const distractors = shuffle(pool).slice(0, 3);
+    return shuffle([target, ...distractors]);
+  }, [target, labels]);
+
+  const onPickChoice = (choice: string) => {
+    if (graded) return;
+    setSelectedChoice(choice);
+    const ok = choice === target;
+    const p = recordAttempt(target, ok);
+    const prof = loadProfile();
+    signal(ok, { sound: p.soundOn, vibrate: prof.vibrate });
+    if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
+    setResults((r) => [...r, ok]);
+    setGraded(true);
+  };
 
   const onResult = (result: Prediction | null) => {
     setPred(result);
@@ -65,6 +88,7 @@ function QuizInner() {
   const next = () => {
     setIdx((i) => i + 1);
     setPred(null);
+    setSelectedChoice(null);
     setGraded(false);
   };
   const skip = () => {
@@ -76,10 +100,13 @@ function QuizInner() {
     setIdx(0);
     setResults([]);
     setPred(null);
+    setSelectedChoice(null);
     setGraded(false);
   };
 
-  const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
+  const correct = quizMode === "camera"
+    ? !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD
+    : selectedChoice === target;
   const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
   const adv = useAutoAdvance(auto && graded && correct && !finished, () => next());
 
@@ -154,12 +181,20 @@ function QuizInner() {
         </Pill>
       </div>
 
-      <div className="col col--tight">
-        <span className="bm">
-          {review ? "Ôn tập · " : "Đố vui · "}Câu {Math.min(idx + 1, deck.length)}/{deck.length} · Hãy ký từ
-        </span>
-        <h1 className="d4">“{target || "…"}”</h1>
-      </div>
+      <Segmented<QuizMode>
+        label="Dạng bài tập"
+        value={quizMode}
+        onChange={(m) => {
+          setQuizMode(m);
+          setGraded(false);
+          setSelectedChoice(null);
+          setPred(null);
+        }}
+        items={[
+          { v: "choice", label: "Nhìn video đoán từ" },
+          { v: "camera", label: "Ký với camera" },
+        ]}
+      />
 
       <div className="row" style={{ gap: 6 }} aria-hidden>
         {deck.map((_, i) => (
@@ -175,23 +210,111 @@ function QuizInner() {
         ))}
       </div>
 
-      <SignCapture modelUrl={MODEL_URL} labelsUrl={LABELS_URL} features={WORD_FEATURES} onResult={onResult} locked={graded} manualLabel="Ký hiệu" errorNote="Bạn có thể bỏ qua câu này." />
-
-      {pred && (
-        <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
-          <Ring pct={Math.round(pred.confidence * 100)} color={correct ? "var(--grn)" : "var(--org)"} size={64} thick={8}>
-            <span className="sm" style={{ color: "var(--txt)" }}>
-              {Math.round(pred.confidence * 100)}%
+      {quizMode === "choice" ? (
+        <section className="col" style={{ gap: 14 }} aria-label="Nhìn ký hiệu đoán nghĩa">
+          <div className="col col--tight">
+            <span className="bm">
+              {review ? "Ôn tập · " : "Đố vui · "}Câu {Math.min(idx + 1, deck.length)}/{deck.length}
             </span>
-          </Ring>
-          <div className="col col--tight grow">
-            <span className="h4">{correct ? "Đúng rồi!" : "Chưa đúng"}</span>
-            {!correct && (
-              <span className="bm">
-                AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b>
-              </span>
-            )}
+            <h1 className="h3" style={{ margin: 0 }}>Video này có nghĩa là gì?</h1>
           </div>
+
+          <div style={{ borderRadius: 20, overflow: "hidden", background: "#000", position: "relative" }}>
+            <LoopVideo
+              word={target}
+              slow
+              allowSpeedToggle
+              style={{ width: "100%", height: 260, objectFit: "cover", display: "block" }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {choices.map((c) => {
+              const isSelected = selectedChoice === c;
+              const isTarget = c === target;
+              let bg = "var(--surface)";
+              let color = "var(--txt)";
+              let border = "1.5px solid var(--line)";
+              if (graded) {
+                if (isTarget) {
+                  bg = "var(--grn-soft)";
+                  color = "var(--grn-txt)";
+                  border = "2px solid var(--grn)";
+                } else if (isSelected) {
+                  bg = "var(--red-soft)";
+                  color = "var(--red-txt)";
+                  border = "2px solid var(--red)";
+                }
+              }
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  disabled={graded}
+                  onClick={() => onPickChoice(c)}
+                  style={{
+                    background: bg,
+                    color: color,
+                    border: border,
+                    borderRadius: 16,
+                    padding: "16px 12px",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    minHeight: 56,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    cursor: graded ? "default" : "pointer",
+                    boxShadow: "var(--shadow-tile)",
+                    transition: "all 0.15s ease",
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  {graded && isTarget && <CheckCircle2 size={18} color="var(--grn-txt)" aria-hidden />}
+                  {graded && isSelected && !isTarget && <AlertCircle size={18} color="var(--red-txt)" aria-hidden />}
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+
+          {graded && (
+            <div className="card card--row" style={{ padding: "14px 16px", background: correct ? "var(--grn-soft)" : "var(--red-soft)", borderColor: correct ? "var(--grn)" : "var(--red)" }}>
+              <span className="bb" style={{ color: correct ? "var(--grn-txt)" : "var(--red-txt)" }}>
+                {correct ? "Chính xác! Bạn nhớ ký hiệu rất tốt." : `Chưa đúng. Ký hiệu này có nghĩa là “${target}”.`}
+              </span>
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="col" style={{ gap: 14 }} aria-label="Luyện ký với camera">
+          <div className="col col--tight">
+            <span className="bm">
+              {review ? "Ôn tập · " : "Đố vui · "}Câu {Math.min(idx + 1, deck.length)}/{deck.length} · Hãy ký từ
+            </span>
+            <h1 className="d4">“{target || "…"}”</h1>
+          </div>
+
+          <SignCapture modelUrl={MODEL_URL} labelsUrl={LABELS_URL} features={WORD_FEATURES} onResult={onResult} locked={graded} manualLabel="Ký hiệu" errorNote="Bạn có thể bỏ qua câu này." />
+
+          {pred && (
+            <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
+              <Ring pct={Math.round(pred.confidence * 100)} color={correct ? "var(--grn)" : "var(--org)"} size={64} thick={8}>
+                <span className="sm" style={{ color: "var(--txt)" }}>
+                  {Math.round(pred.confidence * 100)}%
+                </span>
+              </Ring>
+              <div className="col col--tight grow">
+                <span className="h4">{correct ? "Đúng rồi!" : "Chưa đúng"}</span>
+                {!correct && (
+                  <span className="bm">
+                    AI nhận ra: <b style={{ color: "var(--txt)" }}>{pred.label}</b>
+                  </span>
+                )}
+              </div>
+            </section>
+          )}
         </section>
       )}
 
@@ -203,7 +326,7 @@ function QuizInner() {
       )}
       {!graded && (
         <Btn level="ghost" size="sm" icon={SkipForward} onClick={skip}>
-          Không dùng được camera? Bỏ qua câu này
+          Bỏ qua câu này
         </Btn>
       )}
     </main>
