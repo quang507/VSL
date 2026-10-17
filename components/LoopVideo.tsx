@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { sampleUrl } from "@/lib/theme";
+import { useProfile } from "@/lib/profile";
 
 /**
  * Video ký hiệu thật, tắt tiếng, lặp lại. Chỉ chạy khi đang nằm trong màn hình
@@ -22,6 +23,7 @@ export default function LoopVideo({
   slow?: boolean;
   allowSpeedToggle?: boolean;
 }) {
+  const { profile } = useProfile();
   const ref = useRef<HTMLVideoElement>(null);
   const [broken, setBroken] = useState(false);
   const [rate, setRate] = useState(slow ? 0.5 : 1);
@@ -71,6 +73,7 @@ export default function LoopVideo({
             loop
             playsInline
             preload="metadata"
+            style={{ transform: profile.leftHanded ? "scaleX(-1)" : undefined, transition: "transform 0.2s ease" }}
             onLoadedData={() => {
               const v = ref.current;
               if (v) {

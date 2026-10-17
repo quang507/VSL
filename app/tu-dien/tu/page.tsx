@@ -88,6 +88,7 @@ function WordInner() {
             loop
             muted
             playsInline
+            style={{ transform: profile.leftHanded ? "scaleX(-1)" : undefined, transition: "transform 0.2s ease" }}
             onLoadedData={() => {
               setReady(true);
               if (ref.current) ref.current.playbackRate = slow ? 0.5 : 1;

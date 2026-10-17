@@ -55,6 +55,7 @@ function Inner() {
                 loop
                 muted
                 playsInline
+                style={{ transform: profile.leftHanded ? "scaleX(-1)" : undefined, transition: "transform 0.2s ease" }}
                 onLoadedData={() => {
                   if (demo.current) demo.current.playbackRate = slow ? 0.5 : 1;
                 }}

@@ -2,13 +2,13 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Camera, Eye, SkipForward, Info, ChevronLeft } from "lucide-react";
+import { Camera, Eye, SkipForward, Info, ChevronLeft, MessageCircle } from "lucide-react";
 import SignCapture from "@/components/SignCapture";
 import { PHRASE_CONFIDENCE_THRESHOLD as CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { recordAttempt } from "@/lib/progress";
 import { signal } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
-import { PHRASE_MODEL, PHRASE_LABELS, usePhrases, usePhraseDemo, phraseUrl } from "@/lib/phrases";
+import { PHRASE_MODEL, PHRASE_LABELS, usePhrases, usePhraseDemo, phraseUrl, getPhraseMeta } from "@/lib/phrases";
 import type { Prediction } from "@/lib/classifier";
 import SkeletonDemo from "@/components/SkeletonDemo";
 import Flash from "@/components/Flash";
@@ -21,6 +21,7 @@ function Inner() {
   const target = labels[i] ?? "";
   const next = i + 1 < labels.length ? i + 1 : null;
   const frames = usePhraseDemo(target);
+  const meta = getPhraseMeta(target);
   const [step, setStep] = useState<"demo" | "practice">("demo");
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
@@ -75,7 +76,27 @@ function Inner() {
       />
       {step === "demo" ? (
         <>
+          {/* Tình huống đàm thoại 2 chiều */}
+          <div className="card" style={{ gap: 6, background: "var(--surface)", borderLeft: "4px solid var(--pur)", padding: "12px 14px", borderRadius: 16 }}>
+            <span className="sm" style={{ color: "var(--txt2)", fontWeight: 600 }}>Tình huống hội thoại</span>
+            <span className="bb" style={{ color: "var(--txt)", fontSize: 15 }}>{meta.dialogue.partnerPrompt}</span>
+          </div>
+
           <SkeletonDemo frames={frames} />
+
+          {/* Hướng dẫn biểu cảm khuôn mặt (Non-manual markers) */}
+          <div className="card" style={{ gap: 6, background: "var(--brand-soft)", borderColor: "transparent", padding: "14px 16px", borderRadius: 16 }}>
+            <div className="row" style={{ gap: 8, alignItems: "center" }}>
+              <span className="badge badge--s" style={{ background: meta.expression.badgeBg, color: meta.expression.badgeFg }}>
+                {meta.expression.badge}
+              </span>
+              <span className="h4" style={{ fontSize: 14 }}>Biểu cảm khuôn mặt đi kèm</span>
+            </div>
+            <span className="bm" style={{ color: "var(--txt)", fontSize: 14, lineHeight: 1.5 }}>
+              {meta.expression.tip}
+            </span>
+          </div>
+
           <div className="tile t-blu" style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
             <Info size={22} color="var(--acc)" aria-hidden style={{ flex: "none" }} />
             <span className="bm" style={{ color: "var(--txt)" }}>
@@ -89,6 +110,20 @@ function Inner() {
       ) : (
         <>
           <SignCapture modelUrl={PHRASE_MODEL} labelsUrl={PHRASE_LABELS} onResult={onResult} locked={correct && next !== null} attempted={done} errorNote="Bạn vẫn xem được hoạt hình mẫu." />
+
+          {/* Phản hồi đàm thoại 2 chiều khi ký đúng */}
+          {correct && (
+            <div className="card card--row" style={{ gap: 12, background: "var(--grn-soft)", borderColor: "var(--grn)", padding: "16px 18px", borderRadius: 20 }}>
+              <span className="icon-circle" style={{ width: 44, height: 44, background: "var(--grn)", color: "#fff", flex: "none" }}>
+                <MessageCircle size={22} aria-hidden />
+              </span>
+              <div className="col col--tight grow">
+                <span className="sm" style={{ color: "var(--grn-txt)", fontWeight: 700 }}>Người thân đáp lại:</span>
+                <span className="bb" style={{ fontSize: 16, color: "var(--txt)" }}>{meta.dialogue.partnerReply}</span>
+              </div>
+            </div>
+          )}
+
           {pred && (
             <section className="card card--row" aria-live="polite" style={{ border: `2.5px solid ${correct ? "var(--grn)" : "var(--red)"}` }}>
               <Ring pct={Math.round(pred.confidence * 100)} color={correct ? "var(--grn)" : "var(--org)"} size={76} thick={9}>

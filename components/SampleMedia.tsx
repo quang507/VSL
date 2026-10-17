@@ -4,13 +4,19 @@ import { asset } from "@/lib/base";
 import { useEffect, useRef, useState } from "react";
 import { Gauge, Repeat, FlipHorizontal } from "lucide-react";
 import { sampleUrl } from "@/lib/theme";
+import { useProfile } from "@/lib/profile";
 
 /** Video mẫu của một từ (public/samples/<từ>.mp4). Không có file thì hiện ảnh minh hoạ. */
 export default function SampleMedia({ word, slow = false, aspect = "1 / 1", controls = true }: { word: string; slow?: boolean; aspect?: string; controls?: boolean }) {
+  const { profile } = useProfile();
   const [ok, setOk] = useState(true);
   const [rate, setRate] = useState(slow ? 0.5 : 1);
-  const [flipped, setFlipped] = useState(false);
+  const [flipped, setFlipped] = useState(profile.leftHanded);
   const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    setFlipped(profile.leftHanded);
+  }, [profile.leftHanded]);
 
   useEffect(() => setOk(true), [word]);
   // Lỗi có thể xảy ra trước khi React gắn onError (lúc hydrate) → kiểm tra lại
