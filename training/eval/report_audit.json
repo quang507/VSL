@@ -1,0 +1,58 @@
+{
+ "video_sach": 3808,
+ "trung_md5": 1074,
+ "nhan_ban_theo_ten": 1045,
+ "cap_trung_noi_dung": 1807,
+ "so_nhom_video_goc": 2733,
+ "nhom_mau_thuan_nhan": 2,
+ "vi_du_mau_thuan": [
+  [
+   "Chào",
+   "Chậm lại"
+  ],
+  [
+   "Chào",
+   "Chậm lại"
+  ]
+ ],
+ "it_frame_thay_tay": 98,
+ "giu_lai": 2652,
+ "mau_moi_lop_min_max": [
+  4,
+  51
+ ],
+ "lop_it_mau_nhat": [
+  [
+   "Xe máy",
+   4
+  ],
+  [
+   "Ban đêm",
+   5
+  ],
+  [
+   "Bàn tay",
+   5
+  ],
+  [
+   "Bệnh nhân",
+   5
+  ],
+  [
+   "Chấp nhận",
+   5
+  ],
+  [
+   "Cách ly",
+   5
+  ],
+  [
+   "Cơ thể",
+   5
+  ],
+  [
+   "Ho",
+   5
+  ]
+ ]
+}

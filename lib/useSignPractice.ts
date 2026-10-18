@@ -1,21 +1,64 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getHandLandmarker, detectHands } from "./handLandmarker";
-import {
-  loadClassifier,
-  predict,
-  isReady,
-  type Prediction,
-} from "./classifier";
-import { buildFrameFeatures, resampleSequence } from "./landmarks";
+import { getHandLandmarker, detectHands, getFaceDetector, detectFace } from "./handLandmarker";
+import { createFaceTracker } from "./faceTracker";
+import type { FeatureKind } from "./constants";
+import { loadModel, predictTopK, type Prediction } from "./classifier";
+import { MODEL_URL, LABELS_URL } from "./constants";
+import { buildFrameFeatures, resampleSequence, type HandResult } from "./landmarks";
 import { drawHands } from "./draw";
 
 export type Phase = "loading" | "ready" | "countdown" | "recording" | "result";
 
 const RECORD_MS = 2500; // thời gian quay mỗi lần ký hiệu
+const MIN_FRAMES = 6; // ít hơn số frame có tay này thì coi như "không thấy tay"
 
-export function useSignPractice() {
+/** Gợi ý tư thế hiển thị trực tiếp trên khung camera */
+export type Hint = "none" | "edge" | "close" | "far" | "ok" | "noface";
+
+export function computeHint(hands: HandResult[]): Hint {
+  if (!hands.length) return "none";
+  let size = 0;
+  let edge = false;
+  for (const h of hands) {
+    let minX = 1, maxX = 0, minY = 1, maxY = 0;
+    for (const p of h.points) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+    if (minX < 0.03 || maxX > 0.97 || minY < 0.03 || maxY > 0.97) edge = true;
+    size = Math.max(size, maxY - minY, maxX - minX);
+  }
+  if (edge) return "edge";
+  if (size > 0.6) return "close";
+  if (size < 0.12) return "far";
+  return "ok";
+}
+
+/** Nhận diện bàn tay mở xòe ngón giơ cao (Open Palm / Vẫy tay chào) để kích hoạt không chạm */
+export function isOpenPalmWave(hands: HandResult[]): boolean {
+  if (!hands.length) return false;
+  for (const h of hands) {
+    const pts = h.points;
+    if (pts.length < 21) continue;
+    // Bàn tay giơ ở nửa trên khung hình (cổ tay y < 0.7)
+    if (pts[0].y > 0.75) continue;
+    // Các đầu ngón tay (4, 8, 12, 16, 20) phải cao hơn các khớp gốc MCP (2, 5, 9, 13, 17)
+    const fingersUp =
+      pts[8].y < pts[6].y &&
+      pts[12].y < pts[10].y &&
+      pts[16].y < pts[14].y &&
+      pts[20].y < pts[18].y;
+    // Khoảng cách xòe giữa ngón trỏ và ngón út
+    const span = Math.abs(pts[4].x - pts[20].x);
+    if (fingersUp && span > 0.1) return true;
+  }
+  return false;
+}
+
+/** modelUrl/labelsUrl mặc định = model 100 từ đơn; truyền model khác cho "Câu giao tiếp" */
+export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL, features: FeatureKind = "hands") {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -23,24 +66,39 @@ export function useSignPractice() {
   const recordingRef = useRef(false);
   const rafRef = useRef(0);
   const handsCountRef = useRef(-1);
+  const hintRef = useRef<Hint>("none");
+  const faceSeenRef = useRef(true);
+  const [faceSeen, setFaceSeen] = useState(true);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [count, setCount] = useState(3);
   const [handsVisible, setHandsVisible] = useState(0);
+  const [hint, setHint] = useState<Hint>("none");
   const [modelReady, setModelReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [wavingDetected, setWavingDetected] = useState(false);
+  const waveFramesRef = useRef(0);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
     let stream: MediaStream | null = null;
     let cancelled = false;
+    let lastVideoTime = -1;
 
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const s = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 640, height: 480 },
           audio: false,
         });
-        if (cancelled) return;
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        stream = s;
         const video = videoRef.current;
         if (video) {
           video.srcObject = stream;
@@ -48,33 +106,73 @@ export function useSignPractice() {
         }
 
         const hl = await getHandLandmarker();
+        const fd = features === "face" ? await getFaceDetector() : null;
+        const faces = createFaceTracker();
         // Model có thể chưa tồn tại (chưa train) -> KHÔNG được chặn UI
+        let ok = false;
         try {
-          await loadClassifier();
+          await loadModel(modelUrl, labelsUrl);
+          ok = true;
         } catch {
           /* chưa có model: vẫn chạy camera + khung xương */
         }
         if (cancelled) return;
-        setModelReady(isReady());
-
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d") ?? null;
+        setModelReady(ok);
 
         const loop = () => {
+          // Lấy canvas mỗi frame: canvas cũng có thể mount sau khi camera mở
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext("2d") ?? null;
           const v = videoRef.current;
-          if (v && v.readyState >= 2) {
+          // Thẻ <video> có thể được mount SAU khi camera mở (vd. bước "Xem mẫu"
+          // chưa hiện khung camera) → gắn lại luồng mỗi khi thẻ mới xuất hiện.
+          if (v && stream && v.srcObject !== stream) {
+            v.srcObject = stream;
+            v.play().catch(() => {});
+          }
+          // Chỉ xử lý khi camera có frame MỚI (màn 60–120 Hz gọi loop nhiều hơn số frame camera)
+          if (v && v.readyState >= 2 && v.currentTime !== lastVideoTime) {
+            lastVideoTime = v.currentTime;
             if (canvas && canvas.width !== v.videoWidth && v.videoWidth) {
               canvas.width = v.videoWidth;
               canvas.height = v.videoHeight;
             }
-            const hands = detectHands(hl, v, performance.now());
+            const now = performance.now();
+            const hands = detectHands(hl, v, now);
             if (ctx && canvas) drawHands(ctx, hands, canvas.width, canvas.height);
+            if (fd) {
+              const f = detectFace(fd, v, now, hands);
+              if (f && !f.covered) faces.push(f.face);
+              if (!!f !== faceSeenRef.current) {
+                faceSeenRef.current = !!f;
+                setFaceSeen(!!f);
+              }
+            }
             if (hands.length !== handsCountRef.current) {
               handsCountRef.current = hands.length;
               setHandsVisible(hands.length);
             }
+            const h = computeHint(hands);
+            if (h !== hintRef.current) {
+              hintRef.current = h;
+              setHint(h);
+            }
+
+            // Nhận diện giơ bàn tay vẫy chào để kích hoạt rảnh tay
+            if (isOpenPalmWave(hands)) {
+              waveFramesRef.current += 1;
+              if (waveFramesRef.current >= 4) {
+                setWavingDetected(true);
+              }
+            } else {
+              waveFramesRef.current = Math.max(0, waveFramesRef.current - 1);
+              if (waveFramesRef.current === 0) {
+                setWavingDetected(false);
+              }
+            }
+
             if (recordingRef.current && hands.length > 0) {
-              framesRef.current.push(buildFrameFeatures(hands));
+              framesRef.current.push(buildFrameFeatures(hands, v.videoHeight / v.videoWidth, fd ? faces.ref() : undefined));
             }
           }
           rafRef.current = requestAnimationFrame(loop);
@@ -82,49 +180,73 @@ export function useSignPractice() {
         rafRef.current = requestAnimationFrame(loop);
         setPhase("ready");
       } catch (e: any) {
-        setCameraError(
-          e?.message ?? "Không truy cập được camera. Kiểm tra quyền camera."
-        );
+        if (!cancelled) {
+          setCameraError(
+            e?.message ?? "Không truy cập được camera. Kiểm tra quyền camera."
+          );
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      isMountedRef.current = false;
       cancelAnimationFrame(rafRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+      recordingRef.current = false;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [modelUrl, labelsUrl, features]);
 
   // Đếm ngược -> quay -> dự đoán. Trả về Prediction, hoặc null nếu chưa có model / không thấy tay.
   const start = useCallback((): Promise<Prediction | null> => {
     return new Promise((resolve) => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+
       framesRef.current = [];
       setCount(3);
       setPhase("countdown");
       let c = 3;
-      const tick = setInterval(() => {
+      countdownTimerRef.current = setInterval(() => {
+        if (!isMountedRef.current) {
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+          resolve(null);
+          return;
+        }
         c -= 1;
         if (c > 0) {
           setCount(c);
         } else {
-          clearInterval(tick);
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
           setPhase("recording");
           recordingRef.current = true;
-          setTimeout(async () => {
+          recordTimeoutRef.current = setTimeout(async () => {
             recordingRef.current = false;
             const frames = framesRef.current;
-            setPhase("result");
-            if (!isReady() || frames.length === 0) {
+            if (!isMountedRef.current) {
               resolve(null);
               return;
             }
-            const seq = resampleSequence(frames);
-            resolve(await predict(seq));
+            setPhase("result");
+            if (frames.length < MIN_FRAMES) {
+              resolve(null);
+              return;
+            }
+            try {
+              resolve((await predictTopK(modelUrl, resampleSequence(frames), 1))[0]);
+            } catch {
+              resolve(null); // model chưa sẵn sàng
+            }
           }, RECORD_MS);
         }
       }, 1000);
     });
-  }, []);
+  }, [modelUrl]);
 
   return {
     videoRef,
@@ -133,8 +255,11 @@ export function useSignPractice() {
     setPhase,
     count,
     handsVisible,
+    hint,
+    faceSeen,
     modelReady,
     cameraError,
+    wavingDetected,
     start,
   };
 }

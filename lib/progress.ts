@@ -18,6 +18,7 @@ export interface Progress {
   days: Record<string, number>; // "YYYY-MM-DD" -> số lần đúng trong ngày
   dailyGoal: number; // mục tiêu số từ đúng mỗi ngày
   soundOn: boolean; // bật âm thanh + rung
+  streakFreeze?: number; // khiên bảo vệ chuỗi ngày học (mặc định tặng 2 khiên)
 }
 
 export function emptyProgress(): Progress {
@@ -29,6 +30,7 @@ export function emptyProgress(): Progress {
     days: {},
     dailyGoal: 5,
     soundOn: true,
+    streakFreeze: 2,
   };
 }
 
@@ -115,14 +117,36 @@ export function todayCount(p: Progress): number {
 
 // Số ngày liên tiếp đạt mục tiêu (tính lùi từ hôm nay; nếu hôm nay chưa
 // đạt thì tính lùi từ hôm qua để streak chưa bị mất trong ngày).
+// Có tích hợp khiên bảo vệ (Streak Freeze): nếu hụt 1 ngày, khiên sẽ tự kích hoạt bảo toàn chuỗi.
 export function dayStreak(p: Progress): number {
   const goal = p.dailyGoal;
   let cursor = dayKey();
-  if ((p.days[cursor] ?? 0) < goal) cursor = addDays(cursor, -1);
+  const todayMet = (p.days[cursor] ?? 0) >= goal;
   let n = 0;
-  while ((p.days[cursor] ?? 0) >= goal) {
-    n += 1;
+  let freezeUsed = 0;
+  const availableFreeze = p.streakFreeze ?? 2;
+
+  // Nếu hôm nay đã đạt: tính 1 ngày cho hôm nay và lùi về hôm qua
+  if (todayMet) {
+    n = 1;
     cursor = addDays(cursor, -1);
+  } else {
+    // Chưa học hôm nay: bắt đầu xét từ hôm qua để chưa mất chuỗi trong ngày
+    cursor = addDays(cursor, -1);
+  }
+
+  while (true) {
+    const met = (p.days[cursor] ?? 0) >= goal;
+    if (met) {
+      n += 1;
+      cursor = addDays(cursor, -1);
+    } else if (freezeUsed < availableFreeze) {
+      // Ngày này hụt: dùng 1 khiên để giữ chuỗi và tiếp tục lùi xem có streak trước đó không
+      freezeUsed += 1;
+      cursor = addDays(cursor, -1);
+    } else {
+      break;
+    }
   }
   return n;
 }
@@ -135,13 +159,53 @@ export function levelInfo(score: number) {
   return { level, into, size: SIZE, pct: Math.round((into / SIZE) * 100) };
 }
 
+// ---- Sức mạnh trí nhớ của từ (0..100%) ----
+export function wordStrength(stat?: WordStat, now = Date.now()): number {
+  if (!stat || stat.correct <= 0) return 0;
+  const box = stat.box ?? 1;
+  const last = stat.last ?? now;
+  const due = stat.due ?? (last + 24 * 3600_000);
+  
+  if (now <= last) return 100;
+  if (now >= due) {
+    const overdueHours = (now - due) / 3600_000;
+    // Tụt dần theo thời gian quá hạn ôn tập, tối thiểu còn 20%
+    return Math.max(20, Math.round(50 - overdueHours * 2));
+  }
+  // Đang trong hạn ôn: từ 100% tụt dần về 60%
+  const totalDuration = due - last;
+  const elapsed = now - last;
+  const ratio = Math.min(1, Math.max(0, elapsed / totalDuration));
+  return Math.round(100 - ratio * 40);
+}
+
 // ---- Ôn tập lặp lại: từ đã học mà tới hạn ôn ----
 export function dueWords(p: Progress, labels: string[], now = Date.now()): string[] {
   const set = new Set(labels);
   return Object.entries(p.words)
-    .filter(([w, s]) => set.has(w) && s.correct > 0 && (s.due ?? 0) <= now)
+    .filter(([w, s]) => set.has(w) && s.correct > 0 && ((s.due ?? 0) <= now || (s.box ?? 0) < 2))
     .sort((a, b) => (a[1].due ?? 0) - (b[1].due ?? 0))
     .map(([w]) => w);
+}
+
+// ---- Đánh dấu các từ đã hoàn thành (dùng cho Placement Test vượt cấp) ----
+export function markWordsLearned(words: string[]): Progress {
+  const p = loadProgress();
+  const now = Date.now();
+  for (const w of words) {
+    if (!p.words[w] || p.words[w].correct === 0) {
+      p.words[w] = {
+        attempts: 1,
+        correct: 1,
+        box: 2,
+        last: now,
+        due: now + 72 * 3600_000,
+      };
+      p.score += 10;
+    }
+  }
+  save(p);
+  return p;
 }
 
 // ---- Cài đặt ----

@@ -1,50 +1,83 @@
-// Load model TF.js + dự đoán nhãn từ chuỗi landmark
+// Load model TF.js + dự đoán nhãn từ chuỗi landmark.
+// Hỗ trợ nhiều model (từ đơn, câu giao tiếp…) — mỗi model nạp 1 lần rồi dùng lại.
 import * as tf from "@tensorflow/tfjs";
-import {
-  MODEL_URL,
-  LABELS_URL,
-  SEQ_LEN,
-  FEATURES_PER_FRAME,
-} from "./constants";
-
-let model: tf.LayersModel | null = null;
-let labels: string[] = [];
+import { MODEL_URL, LABELS_URL, SEQ_LEN } from "./constants";
 
 export interface Prediction {
   label: string;
   confidence: number;
 }
 
+interface Loaded {
+  model: tf.LayersModel;
+  labels: string[];
+}
+
+const cache = new Map<string, Promise<Loaded>>();
+const ready = new Map<string, Loaded>();
+
+export async function loadModel(modelUrl: string, labelsUrl: string): Promise<Loaded> {
+  let p = cache.get(modelUrl);
+  if (!p) {
+    p = (async () => {
+      const [m, res] = await Promise.all([tf.loadLayersModel(modelUrl), fetch(labelsUrl)]);
+      const labels: string[] = await res.json();
+      // Khởi động: lần predict đầu trên WebGL mất vài giây (biên dịch shader).
+      // Chạy trước 1 lần với input rỗng để lúc người dùng ký xong có kết quả ngay.
+      const nfeat = Number(m.inputs[0].shape[2]);
+      const zero = tf.zeros([1, SEQ_LEN, nfeat]);
+      let warm: tf.Tensor | null = null;
+      try {
+        warm = m.predict(zero) as tf.Tensor;
+        await warm.data();
+      } finally {
+        zero.dispose();
+        warm?.dispose();
+      }
+      const l = { model: m, labels };
+      ready.set(modelUrl, l);
+      return l;
+    })();
+    cache.set(modelUrl, p);
+    p.catch(() => cache.delete(modelUrl)); // lỗi mạng thì cho thử lại
+  }
+  return p;
+}
+
+/** Trả về top-k nhãn kèm độ tin cậy, sắp giảm dần */
+export async function predictTopK(modelUrl: string, sequence: Float32Array, k = 3): Promise<Prediction[]> {
+  const l = ready.get(modelUrl);
+  if (!l) throw new Error("Model chưa load");
+  const nfeat = Number(l.model.inputs[0].shape[2]);
+  if (sequence.length !== SEQ_LEN * nfeat) throw new Error(`Model cần ${nfeat} số/frame, nhận ${sequence.length / SEQ_LEN}`);
+  const input = tf.tensor(sequence, [1, SEQ_LEN, nfeat]);
+  let output: tf.Tensor | null = null;
+  try {
+    output = l.model.predict(input) as tf.Tensor;
+    const probs = (await output.data()) as Float32Array;
+    return Array.from(probs)
+      .map((c, i) => ({ label: l.labels[i] ?? "?", confidence: c }))
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, k);
+  } finally {
+    input.dispose();
+    output?.dispose();
+  }
+}
+
+// ---- API cũ cho model từ đơn mặc định (practice / quiz đang dùng) ----
 export async function loadClassifier(): Promise<void> {
-  if (model && labels.length) return;
-  const [m, res] = await Promise.all([
-    tf.loadLayersModel(MODEL_URL),
-    fetch(LABELS_URL),
-  ]);
-  model = m;
-  labels = await res.json();
+  await loadModel(MODEL_URL, LABELS_URL);
 }
 
 export function getLabels(): string[] {
-  return labels;
+  return ready.get(MODEL_URL)?.labels ?? [];
 }
 
 export function isReady(): boolean {
-  return !!model && labels.length > 0;
+  return ready.has(MODEL_URL);
 }
 
-// sequence: Float32Array(SEQ_LEN * FEATURES_PER_FRAME) -> Prediction
 export async function predict(sequence: Float32Array): Promise<Prediction> {
-  if (!model) throw new Error("Model chưa load");
-  const input = tf.tensor(sequence, [1, SEQ_LEN, FEATURES_PER_FRAME]);
-  const output = model.predict(input) as tf.Tensor;
-  const probs = (await output.data()) as Float32Array;
-  input.dispose();
-  output.dispose();
-
-  let best = 0;
-  for (let i = 1; i < probs.length; i++) {
-    if (probs[i] > probs[best]) best = i;
-  }
-  return { label: labels[best] ?? "?", confidence: probs[best] };
+  return (await predictTopK(MODEL_URL, sequence, 1))[0];
 }

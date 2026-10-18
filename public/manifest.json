@@ -1,29 +1,29 @@
 {
-  "name": "VSL Learn — Học Ngôn Ngữ Ký Hiệu",
-  "short_name": "VSL Learn",
+  "name": "VSLV — Học ngôn ngữ ký hiệu",
+  "short_name": "VSLV",
   "description": "Học ngôn ngữ ký hiệu Việt Nam — bật camera, ký hiệu, AI chấm đúng/sai ngay trong trình duyệt.",
   "lang": "vi",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fdf6e3",
-  "theme_color": "#ffd23f",
+  "background_color": "#f4f8ff",
+  "theme_color": "#f4f8ff",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/maskable-512.png",
+      "src": "icons/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

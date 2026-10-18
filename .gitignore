@@ -6,3 +6,12 @@ next-env.d.ts
 *.tsbuildinfo
 .vercel
 .DS_Store
+.qr-iphone.png
+.eval/
+
+# Kết quả kiểm thử (tạo lại mỗi lần chạy)
+tests/report/
+test-results/
+
+# WASM của MediaPipe: chép từ node_modules lúc build (scripts/copy-mediapipe.mjs)
+public/mediapipe/wasm/
