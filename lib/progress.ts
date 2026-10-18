@@ -121,17 +121,27 @@ export function todayCount(p: Progress): number {
 export function dayStreak(p: Progress): number {
   const goal = p.dailyGoal;
   let cursor = dayKey();
-  if ((p.days[cursor] ?? 0) < goal) cursor = addDays(cursor, -1);
+  const todayMet = (p.days[cursor] ?? 0) >= goal;
   let n = 0;
   let freezeUsed = 0;
   const availableFreeze = p.streakFreeze ?? 2;
 
+  // Nếu hôm nay đã đạt: tính 1 ngày cho hôm nay và lùi về hôm qua
+  if (todayMet) {
+    n = 1;
+    cursor = addDays(cursor, -1);
+  } else {
+    // Chưa học hôm nay: bắt đầu xét từ hôm qua để chưa mất chuỗi trong ngày
+    cursor = addDays(cursor, -1);
+  }
+
   while (true) {
-    if ((p.days[cursor] ?? 0) >= goal) {
+    const met = (p.days[cursor] ?? 0) >= goal;
+    if (met) {
       n += 1;
       cursor = addDays(cursor, -1);
-    } else if (n > 0 && freezeUsed < availableFreeze) {
-      // Hụt 1 ngày sau khi đã có streak -> Kích hoạt khiên bảo vệ
+    } else if (freezeUsed < availableFreeze) {
+      // Ngày này hụt: dùng 1 khiên để giữ chuỗi và tiếp tục lùi xem có streak trước đó không
       freezeUsed += 1;
       cursor = addDays(cursor, -1);
     } else {

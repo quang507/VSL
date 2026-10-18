@@ -60,10 +60,20 @@ export interface FeedbackOpts {
 }
 
 // Hiệu ứng pháo hoa chúc mừng (Confetti) phong cách Duolingo / Lingvano
+let activeConfettiCanvas: HTMLCanvasElement | null = null;
+let activeConfettiRaf = 0;
+
 export function fireConfetti() {
   if (typeof window === "undefined") return;
   try {
+    if (activeConfettiCanvas) {
+      cancelAnimationFrame(activeConfettiRaf);
+      activeConfettiCanvas.remove();
+      activeConfettiCanvas = null;
+    }
+
     const canvas = document.createElement("canvas");
+    activeConfettiCanvas = canvas;
     canvas.style.position = "fixed";
     canvas.style.inset = "0";
     canvas.style.width = "100vw";
@@ -74,6 +84,7 @@ export function fireConfetti() {
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       canvas.remove();
+      activeConfettiCanvas = null;
       return;
     }
     const dpr = window.devicePixelRatio || 1;
@@ -94,13 +105,15 @@ export function fireConfetti() {
       opacity: 1,
     }));
 
-    let animId: number;
     const start = performance.now();
     const render = (now: number) => {
       const elapsed = now - start;
       if (elapsed > 1800) {
-        cancelAnimationFrame(animId);
-        canvas.remove();
+        cancelAnimationFrame(activeConfettiRaf);
+        if (activeConfettiCanvas === canvas) {
+          canvas.remove();
+          activeConfettiCanvas = null;
+        }
         return;
       }
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -118,9 +131,9 @@ export function fireConfetti() {
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
         ctx.restore();
       }
-      animId = requestAnimationFrame(render);
+      activeConfettiRaf = requestAnimationFrame(render);
     };
-    animId = requestAnimationFrame(render);
+    activeConfettiRaf = requestAnimationFrame(render);
   } catch {}
 }
 
@@ -151,9 +164,30 @@ export function speakVietnamese(text: string) {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "vi-VN";
-    const vi = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith("vi"));
-    if (vi) u.voice = vi;
-    window.speechSynthesis.speak(u);
+    
+    const applyVoiceAndSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const vi = voices.find((v) => v.lang.toLowerCase().replace(/_/g, "-").startsWith("vi"));
+      if (vi) u.voice = vi;
+      window.speechSynthesis.speak(u);
+    };
+
+    const currentVoices = window.speechSynthesis.getVoices();
+    if (currentVoices.length > 0) {
+      applyVoiceAndSpeak();
+    } else {
+      // Chrome/Edge có thể tải danh sách voices bất đồng bộ
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        applyVoiceAndSpeak();
+      };
+      // Fallback nói ngay nếu onvoiceschanged không kích hoạt
+      setTimeout(() => {
+        if (!window.speechSynthesis.speaking) {
+          window.speechSynthesis.speak(u);
+        }
+      }, 250);
+    }
   } catch {
     /* bỏ qua nếu browser chặn */
   }

@@ -10,6 +10,7 @@ import { useContinuousSign } from "@/lib/useContinuousSign";
 import { MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import type { Prediction } from "@/lib/classifier";
 import { wordUrl } from "@/lib/qipedc";
+import { speakVietnamese } from "@/lib/feedback";
 import Link from "next/link";
 
 import { PHRASE_MODEL, PHRASE_LABELS } from "@/lib/phrases";
@@ -46,14 +47,12 @@ export default function Translate() {
   const text = items.map((it) => it.top[it.pick]?.label ?? "").join(" ");
 
   const speak = () => {
-    if (!("speechSynthesis" in window) || !text) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "vi-VN";
-    const vi = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith("vi"));
-    if (vi) u.voice = vi;
-    else setTtsMsg("Máy chưa có giọng đọc tiếng Việt, đang dùng giọng mặc định.");
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+    if (!text) return;
+    if (typeof window !== "undefined" && !("speechSynthesis" in window)) {
+      setTtsMsg("Trình duyệt không hỗ trợ phát âm.");
+      return;
+    }
+    speakVietnamese(text);
   };
 
   const statusPill =

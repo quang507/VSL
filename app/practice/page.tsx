@@ -26,28 +26,60 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
   const { videoRef, canvasRef, handsVisible, hint, cameraError } = useSignPractice(MODEL_URL, LABELS_URL, WORD_FEATURES);
   const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const recordedUrlRef = useRef<string | null>(null);
   const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cleanupRecordedUrl = () => {
+    if (recordedUrlRef.current) {
+      URL.revokeObjectURL(recordedUrlRef.current);
+      recordedUrlRef.current = null;
+    }
+    setRecordedUrl(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      cleanupRecordedUrl();
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
 
   const startSelfRecord = () => {
     if (!videoRef.current || !videoRef.current.srcObject) return;
     const stream = videoRef.current.srcObject as MediaStream;
     try {
       chunksRef.current = [];
-      const mr = new MediaRecorder(stream, { mimeType: "video/webm" });
+      let mimeType = "";
+      if (typeof MediaRecorder !== "undefined") {
+        if (typeof MediaRecorder.isTypeSupported === "function") {
+          if (MediaRecorder.isTypeSupported("video/webm")) mimeType = "video/webm";
+          else if (MediaRecorder.isTypeSupported("video/mp4")) mimeType = "video/mp4";
+        }
+      }
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mr;
       mr.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        setRecordedUrl(URL.createObjectURL(blob));
+        cleanupRecordedUrl();
+        const type = mr.mimeType || mimeType || "video/webm";
+        const blob = new Blob(chunksRef.current, { type });
+        const newUrl = URL.createObjectURL(blob);
+        recordedUrlRef.current = newUrl;
+        setRecordedUrl(newUrl);
         setRecording(false);
       };
       mr.start();
       setRecording(true);
-      setTimeout(() => {
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+      recordTimeoutRef.current = setTimeout(() => {
         if (mr.state === "recording") mr.stop();
       }, 3000);
     } catch {
@@ -85,9 +117,21 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
               />
               <button
                 type="button"
-                className="btn btn--secondary btn--sm"
-                style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.6)", color: "#fff", borderColor: "transparent" }}
-                onClick={() => setRecordedUrl(null)}
+                className="btn btn--secondary"
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: 10,
+                  minHeight: 44,
+                  minWidth: 44,
+                  padding: "0 14px",
+                  background: "rgba(0,0,0,0.7)",
+                  color: "#fff",
+                  borderColor: "transparent",
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+                onClick={cleanupRecordedUrl}
               >
                 <RotateCcw size={16} aria-hidden /> Soi trực tiếp
               </button>

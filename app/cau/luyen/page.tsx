@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Camera, Eye, SkipForward, Info, ChevronLeft, MessageCircle, Volume2 } from "lucide-react";
 import SignCapture from "@/components/SignCapture";
@@ -26,6 +26,13 @@ function Inner() {
   const [pred, setPred] = useState<Prediction | null>(null);
   const [done, setDone] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "no" | null; tick: number }>({ kind: null, tick: 0 });
+  const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+    };
+  }, []);
 
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
   const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
@@ -42,12 +49,14 @@ function Inner() {
       if (ok) {
         fireConfetti();
         // Giả lập đối thoại trực tiếp: Người thân phản hồi bằng giọng nói
-        setTimeout(() => speakVietnamese(meta.dialogue.partnerReply), 350);
+        if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+        replyTimerRef.current = setTimeout(() => speakVietnamese(meta.dialogue.partnerReply), 350);
       }
       setDone(true);
     }
   };
   const goTo = (n: number) => {
+    if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
     setPred(null);
     setDone(false);
     setStep("demo");

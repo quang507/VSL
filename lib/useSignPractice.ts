@@ -78,19 +78,27 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   const [cameraError, setCameraError] = useState("");
   const [wavingDetected, setWavingDetected] = useState(false);
   const waveFramesRef = useRef(0);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
     let stream: MediaStream | null = null;
     let cancelled = false;
     let lastVideoTime = -1;
 
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const s = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 640, height: 480 },
           audio: false,
         });
-        if (cancelled) return;
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        stream = s;
         const video = videoRef.current;
         if (video) {
           video.srcObject = stream;
@@ -172,15 +180,24 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
         rafRef.current = requestAnimationFrame(loop);
         setPhase("ready");
       } catch (e: any) {
-        setCameraError(
-          e?.message ?? "Không truy cập được camera. Kiểm tra quyền camera."
-        );
+        if (!cancelled) {
+          setCameraError(
+            e?.message ?? "Không truy cập được camera. Kiểm tra quyền camera."
+          );
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      isMountedRef.current = false;
       cancelAnimationFrame(rafRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+      recordingRef.current = false;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, [modelUrl, labelsUrl, features]);
@@ -188,21 +205,33 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   // Đếm ngược -> quay -> dự đoán. Trả về Prediction, hoặc null nếu chưa có model / không thấy tay.
   const start = useCallback((): Promise<Prediction | null> => {
     return new Promise((resolve) => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
+
       framesRef.current = [];
       setCount(3);
       setPhase("countdown");
       let c = 3;
-      const tick = setInterval(() => {
+      countdownTimerRef.current = setInterval(() => {
+        if (!isMountedRef.current) {
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+          resolve(null);
+          return;
+        }
         c -= 1;
         if (c > 0) {
           setCount(c);
         } else {
-          clearInterval(tick);
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
           setPhase("recording");
           recordingRef.current = true;
-          setTimeout(async () => {
+          recordTimeoutRef.current = setTimeout(async () => {
             recordingRef.current = false;
             const frames = framesRef.current;
+            if (!isMountedRef.current) {
+              resolve(null);
+              return;
+            }
             setPhase("result");
             if (frames.length < MIN_FRAMES) {
               resolve(null);

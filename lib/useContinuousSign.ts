@@ -71,18 +71,22 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
       setS("thinking");
       try {
         const top = await predictTopK(modelRef.current, resampleSequence(core), 3);
-        cb.current(top);
+        if (!cancelled) cb.current(top);
       } catch {
         /* model chưa sẵn sàng */
       }
       busy = false;
-      setS("idle");
+      if (!cancelled) setS("idle");
     };
 
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: false });
-        if (cancelled) return;
+        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: false });
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        stream = s;
         const hl = await getHandLandmarker();
         const fd = await getFaceDetector();
         if (cancelled) return;
@@ -135,16 +139,22 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
         raf = requestAnimationFrame(loop);
         setS("idle");
       } catch (e: unknown) {
-        setCameraError(e instanceof Error ? e.message : "Không truy cập được camera.");
+        if (!cancelled) {
+          setCameraError(e instanceof Error ? e.message : "Không truy cập được camera.");
+        }
       }
     })();
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      segmenter.reset();
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [features]);
 
   return { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, paused, setPaused };
 }

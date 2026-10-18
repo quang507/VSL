@@ -1,7 +1,7 @@
 "use client";
 
 import { asset } from "@/lib/base";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, RotateCw, XCircle, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Bar, Btn, IconBtn, Pill, Sticker } from "@/components/ui";
@@ -31,6 +31,8 @@ export default function Flashcards() {
   const [flipped, setFlipped] = useState(false);
   const [rates, setRates] = useState<Rate[]>([]);
 
+  const lessons = useMemo(() => buildLessons(labels), [labels]);
+
   useEffect(() => {
     if (!labels.length) return;
     const p = loadProgress();
@@ -42,7 +44,7 @@ export default function Flashcards() {
 
   const word = deck[idx];
   const finished = deck.length > 0 && idx >= deck.length;
-  const topic = word ? buildLessons(labels).find((l) => l.words.includes(word))?.title : "";
+  const topic = word ? lessons.find((l) => l.words.includes(word))?.title : "";
 
   const rate = (r: Rate) => {
     // "Nhớ rõ" = đúng (lên hộp Leitner); "Quên/Nhớ mờ" = sai (ôn lại sớm)
