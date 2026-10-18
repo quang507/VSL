@@ -130,39 +130,116 @@ export default function Dictionary() {
   }, [labels, lessons, topic, f]);
   const groups = useMemo(() => groupByLetter(camList), [camList]);
 
-  // ---- Fingerspelling Speed Trainer State ----
+  // ---- Fingerspelling Speed & Receptive Trainer State (Lingvano Style) ----
   const [trainerActive, setTrainerActive] = useState(false);
+  const [trainerMode, setTrainerMode] = useState<"letter" | "word">("letter");
+  const [trainerSpeed, setTrainerSpeed] = useState<number>(800); // 1200ms (0.5x), 800ms (1x), 500ms (1.5x)
   const [trainerTarget, setTrainerTarget] = useState<QEntry | null>(null);
   const [trainerChoices, setTrainerChoices] = useState<string[]>([]);
   const [trainerScore, setTrainerScore] = useState(0);
   const [trainerStreak, setTrainerStreak] = useState(0);
   const [trainerFeedback, setTrainerFeedback] = useState<"ok" | "no" | null>(null);
 
-  const startNextTrainerRound = (entriesPool: QEntry[]) => {
-    if (!entriesPool.length) return;
-    const pool = entriesPool.filter((e) => e.k === 2 || e.k === 1);
-    const target = pool[Math.floor(Math.random() * pool.length)];
-    const otherPool = pool.filter((e) => e.w !== target.w);
-    const distractors: string[] = [];
-    while (distractors.length < 3 && otherPool.length > 0) {
-      const rand = otherPool[Math.floor(Math.random() * otherPool.length)].w;
-      if (!distractors.includes(rand)) distractors.push(rand);
+  // Word Fingerspelling State
+  const [wordTarget, setWordTarget] = useState<string>("");
+  const [wordLetterEntries, setWordLetterEntries] = useState<QEntry[]>([]);
+  const [wordCharIndex, setWordCharIndex] = useState<number>(0);
+  const [wordIsPlaying, setWordIsPlaying] = useState<boolean>(false);
+  const wordTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const letterMap = useMemo(() => {
+    const map = new Map<string, QEntry>();
+    for (const e of entries) {
+      if (e.k === 2 || e.k === 1) {
+        map.set(e.w.toUpperCase(), e);
+      }
     }
-    const shuffled = [target.w, ...distractors].sort(() => Math.random() - 0.5);
-    setTrainerTarget(target);
-    setTrainerChoices(shuffled);
+    return map;
+  }, [entries]);
+
+  const RECEPTIVE_WORDS = useMemo(
+    () => ["BA", "AN", "NAM", "HOA", "LAN", "VUI", "TET", "XE", "NHA", "CO", "CHU", "DI", "BAC", "MAI", "EM", "ANH", "YEU", "BAN", "TAY", "HOC"],
+    []
+  );
+
+  const playWordSequence = (seqEntries: QEntry[], speedMs: number) => {
+    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+    if (!seqEntries.length) return;
+    setWordIsPlaying(true);
+    setWordCharIndex(0);
+
+    let idx = 0;
+    wordTimerRef.current = setInterval(() => {
+      idx += 1;
+      if (idx >= seqEntries.length) {
+        if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+        setWordIsPlaying(false);
+      } else {
+        setWordCharIndex(idx);
+      }
+    }, speedMs);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+    };
+  }, []);
+
+  const startNextTrainerRound = (entriesPool: QEntry[], mode = trainerMode, speed = trainerSpeed) => {
+    if (!entriesPool.length) return;
     setTrainerFeedback(null);
+
+    if (mode === "letter") {
+      const pool = entriesPool.filter((e) => e.k === 2 || e.k === 1);
+      if (!pool.length) return;
+      const target = pool[Math.floor(Math.random() * pool.length)];
+      const otherPool = pool.filter((e) => e.w !== target.w);
+      const distractors: string[] = [];
+      while (distractors.length < 3 && otherPool.length > 0) {
+        const rand = otherPool[Math.floor(Math.random() * otherPool.length)].w;
+        if (!distractors.includes(rand)) distractors.push(rand);
+      }
+      const shuffled = [target.w, ...distractors].sort(() => Math.random() - 0.5);
+      setTrainerTarget(target);
+      setTrainerChoices(shuffled);
+    } else {
+      // Receptive Word Mode
+      const validWords = RECEPTIVE_WORDS.filter((w) =>
+        w.split("").every((char) => letterMap.has(char))
+      );
+      const poolWords = validWords.length >= 4 ? validWords : RECEPTIVE_WORDS;
+      const targetWord = poolWords[Math.floor(Math.random() * poolWords.length)];
+      const otherWords = poolWords.filter((w) => w !== targetWord);
+      const distractors: string[] = [];
+      while (distractors.length < 3 && otherWords.length > 0) {
+        const rand = otherWords[Math.floor(Math.random() * otherWords.length)];
+        if (!distractors.includes(rand)) distractors.push(rand);
+      }
+      const shuffled = [targetWord, ...distractors].sort(() => Math.random() - 0.5);
+
+      const seqEntries = targetWord
+        .split("")
+        .map((char) => letterMap.get(char))
+        .filter(Boolean) as QEntry[];
+
+      setWordTarget(targetWord);
+      setWordLetterEntries(seqEntries);
+      setTrainerChoices(shuffled);
+      playWordSequence(seqEntries, speed);
+    }
   };
 
   const handleTrainerAnswer = (chosen: string) => {
-    if (!trainerTarget || trainerFeedback !== null) return;
-    if (chosen === trainerTarget.w) {
-      setTrainerScore((s) => s + 10);
+    if (trainerFeedback !== null) return;
+    const isCorrect = trainerMode === "letter" ? chosen === trainerTarget?.w : chosen === wordTarget;
+    if (isCorrect) {
+      setTrainerScore((s) => s + (trainerMode === "word" ? 15 : 10));
       setTrainerStreak((st) => st + 1);
       setTrainerFeedback("ok");
-      speakVietnamese(trainerTarget.w);
+      speakVietnamese(trainerMode === "letter" ? (trainerTarget?.w ?? "") : wordTarget);
       setTimeout(() => {
-        startNextTrainerRound(entries);
+        startNextTrainerRound(entries, trainerMode, trainerSpeed);
       }, 700);
     } else {
       setTrainerStreak(0);
@@ -458,23 +535,68 @@ export default function Dictionary() {
                 }}
               >
                 {!trainerActive ? (
-                  <div className="col" style={{ gap: 8 }}>
+                  <div className="col" style={{ gap: 12 }}>
                     <div className="row row--between" style={{ alignItems: "center" }}>
-                      <span className="h4" style={{ color: "var(--acc)" }}>Luyện phản xạ ngón tay (Speed Trainer)</span>
+                      <span className="h4" style={{ color: "var(--acc)" }}>Luyện đọc ngón tay (Receptive Trainer)</span>
                       <span className="badge badge--s badge--acc">Lingvano Mode</span>
                     </div>
                     <span className="bm" style={{ color: "var(--txt)", fontSize: 14 }}>
-                      Xem video ngón tay chuyển động và bấm chọn chữ cái tương ứng trong tích tắc để rèn phản xạ giao tiếp thực tế.
+                      Rèn kỹ năng tiếp nhận cử chỉ: nhìn người khác đánh vần chữ cái hoặc chuỗi từ ngắn theo tốc độ thực tế để phản xạ tức thì.
                     </span>
+
+                    {/* Lựa chọn Chế độ & Tốc độ */}
+                    <div className="col" style={{ gap: 8 }}>
+                      <div className="row" style={{ gap: 8 }}>
+                        <button
+                          type="button"
+                          className="chip"
+                          aria-pressed={trainerMode === "letter"}
+                          onClick={() => setTrainerMode("letter")}
+                          style={{ minHeight: 44 }}
+                        >
+                          Chữ cái đơn
+                        </button>
+                        <button
+                          type="button"
+                          className="chip"
+                          aria-pressed={trainerMode === "word"}
+                          onClick={() => setTrainerMode("word")}
+                          style={{ minHeight: 44 }}
+                        >
+                          Đọc chuỗi từ (Word)
+                        </button>
+                      </div>
+
+                      <div className="row" style={{ gap: 6, alignItems: "center" }}>
+                        <span className="sm" style={{ color: "var(--txt2)", marginRight: 4 }}>Tốc độ:</span>
+                        {[
+                          { label: "0.5x (Chậm)", val: 1200 },
+                          { label: "1.0x (Chuẩn)", val: 800 },
+                          { label: "1.5x (Nhanh)", val: 500 },
+                        ].map((sp) => (
+                          <button
+                            key={sp.val}
+                            type="button"
+                            className="chip"
+                            aria-pressed={trainerSpeed === sp.val}
+                            onClick={() => setTrainerSpeed(sp.val)}
+                            style={{ minHeight: 44, padding: "0 10px", fontSize: 13 }}
+                          >
+                            {sp.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       className="btn btn--primary btn--md"
-                      style={{ marginTop: 4, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8 }}
+                      style={{ marginTop: 4, alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44 }}
                       onClick={() => {
                         setTrainerActive(true);
                         setTrainerScore(0);
                         setTrainerStreak(0);
-                        startNextTrainerRound(entries);
+                        startNextTrainerRound(entries, trainerMode, trainerSpeed);
                       }}
                     >
                       <Play size={18} fill="currentColor" aria-hidden />
@@ -489,18 +611,68 @@ export default function Dictionary() {
                         <span className="bb" style={{ color: "var(--acc)" }}>Chuỗi: {trainerStreak} 🔥</span>
                         <span className="sm num" style={{ color: "var(--txt2)" }}>Điểm: {trainerScore}</span>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn--tertiary btn--sm"
-                        onClick={() => setTrainerActive(false)}
-                      >
-                        Dừng lại
-                      </button>
+                      <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                        {trainerMode === "word" && (
+                          <button
+                            type="button"
+                            className="btn btn--secondary btn--sm"
+                            style={{ minHeight: 44, display: "inline-flex", alignItems: "center", gap: 6 }}
+                            onClick={() => playWordSequence(wordLetterEntries, trainerSpeed)}
+                            aria-label="Xem lại chuỗi ngón tay"
+                          >
+                            <RotateCcw size={16} aria-hidden />
+                            Phát lại
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn--tertiary btn--sm"
+                          style={{ minHeight: 44 }}
+                          onClick={() => {
+                            if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+                            setTrainerActive(false);
+                          }}
+                        >
+                          Dừng lại
+                        </button>
+                      </div>
                     </div>
 
-                    {trainerTarget && (
+                    {/* Header thông tin vòng chơi */}
+                    <div className="row row--between" style={{ alignItems: "center", fontSize: 13, color: "var(--txt2)" }}>
+                      <span>Chế độ: <strong>{trainerMode === "letter" ? "Chữ cái đơn" : "Đọc chuỗi từ ghép"}</strong></span>
+                      {trainerMode === "word" && wordLetterEntries.length > 0 && (
+                        <span>
+                          {wordIsPlaying
+                            ? `Đang chạy ký tự: ${wordCharIndex + 1} / ${wordLetterEntries.length}`
+                            : "Đã hoàn thành chuỗi — Chọn đáp án!"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Sequence Indicator Dots */}
+                    {trainerMode === "word" && wordLetterEntries.length > 0 && (
+                      <div className="row" style={{ gap: 8, justifyContent: "center" }}>
+                        {wordLetterEntries.map((_, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: i === wordCharIndex ? "var(--acc)" : i < wordCharIndex ? "var(--pos)" : "var(--edge)",
+                              transition: "all 0.2s ease",
+                              transform: i === wordCharIndex ? "scale(1.3)" : "scale(1)",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Video ký tự hiển thị */}
+                    {((trainerMode === "letter" && trainerTarget) ||
+                      (trainerMode === "word" && wordLetterEntries.length > 0)) && (
                       <div className="col" style={{ alignItems: "center", gap: 12 }}>
-                        {/* Video ký tự */}
                         <div
                           style={{
                             width: "100%",
@@ -513,15 +685,20 @@ export default function Dictionary() {
                           }}
                         >
                           {(() => {
-                            const sense = trainerTarget.s[0];
+                            const curTarget =
+                              trainerMode === "letter"
+                                ? trainerTarget
+                                : wordLetterEntries[wordCharIndex];
+                            if (!curTarget) return null;
+                            const sense = curTarget.s[0];
                             const vKey = preferredVariant(sense, profile.region);
                             const vidId = sense.v[vKey as keyof typeof sense.v];
                             return vidId ? (
                               <video
-                                key={vidId}
+                                key={`${vidId}-${wordCharIndex}`}
                                 src={videoUrl(vidId)}
                                 autoPlay
-                                loop
+                                loop={trainerMode === "letter"}
                                 muted
                                 playsInline
                                 style={{
@@ -537,33 +714,30 @@ export default function Dictionary() {
 
                         {/* 4 Lựa chọn phản xạ */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 320 }}>
-                          {trainerChoices.map((choice) => (
-                            <button
-                              key={choice}
-                              type="button"
-                              className="btn btn--secondary btn--lg"
-                              style={{
-                                fontSize: 20,
-                                fontWeight: 700,
-                                minHeight: 52,
-                                background:
-                                  trainerFeedback === "ok" && choice === trainerTarget.w
-                                    ? "var(--pos)"
-                                    : "var(--surface)",
-                                color:
-                                  trainerFeedback === "ok" && choice === trainerTarget.w
-                                    ? "#fff"
-                                    : "var(--txt)",
-                                borderColor:
-                                  trainerFeedback === "ok" && choice === trainerTarget.w
-                                    ? "var(--pos)"
-                                    : "var(--edge)",
-                              }}
-                              onClick={() => handleTrainerAnswer(choice)}
-                            >
-                              {choice}
-                            </button>
-                          ))}
+                          {trainerChoices.map((choice) => {
+                            const isWin =
+                              trainerFeedback === "ok" &&
+                              (trainerMode === "letter" ? choice === trainerTarget?.w : choice === wordTarget);
+                            return (
+                              <button
+                                key={choice}
+                                type="button"
+                                className="btn btn--secondary btn--lg"
+                                style={{
+                                  fontSize: 20,
+                                  fontWeight: 700,
+                                  minHeight: 52,
+                                  minWidth: 44,
+                                  background: isWin ? "var(--pos)" : "var(--surface)",
+                                  color: isWin ? "#fff" : "var(--txt)",
+                                  borderColor: isWin ? "var(--pos)" : "var(--edge)",
+                                }}
+                                onClick={() => handleTrainerAnswer(choice)}
+                              >
+                                {choice}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

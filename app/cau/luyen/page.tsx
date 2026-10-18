@@ -37,6 +37,12 @@ function Inner() {
   const correct = !!pred && pred.label === target && pred.confidence >= CONFIDENCE_THRESHOLD;
   const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
 
+  const [branch, setBranch] = useState<"A" | "B">("A");
+
+  const branchReply = branch === "A" 
+    ? meta.dialogue.partnerReply 
+    : `Tôi hiểu rồi, chúng ta có thể làm sau nhé! Cảm ơn bạn.`;
+
   const onResult = (r: Prediction | null) => {
     setPred(r);
     setDone(false);
@@ -48,9 +54,9 @@ function Inner() {
       if (prof.flash) setFlash((f) => ({ kind: ok ? "ok" : "no", tick: f.tick + 1 }));
       if (ok) {
         fireConfetti();
-        // Giả lập đối thoại trực tiếp: Người thân phản hồi bằng giọng nói
+        // Giả lập đối thoại trực tiếp: Người thân phản hồi theo nhánh đã chọn
         if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
-        replyTimerRef.current = setTimeout(() => speakVietnamese(meta.dialogue.partnerReply), 350);
+        replyTimerRef.current = setTimeout(() => speakVietnamese(branchReply), 350);
       }
       setDone(true);
     }
@@ -90,10 +96,13 @@ function Inner() {
       />
       {step === "demo" ? (
         <>
-          {/* Tình huống đàm thoại 2 chiều */}
-          <div className="card" style={{ gap: 8, background: "var(--surface)", borderLeft: "4px solid var(--pur)", padding: "12px 14px", borderRadius: 16 }}>
+          {/* Cây hội thoại phân nhánh tương tác (Interactive Dialogue Tree) */}
+          <div className="card" style={{ gap: 10, background: "var(--surface)", borderLeft: "4px solid var(--pur)", padding: "14px 16px", borderRadius: 16 }}>
             <div className="row row--between" style={{ alignItems: "center" }}>
-              <span className="sm" style={{ color: "var(--txt2)", fontWeight: 600 }}>Tình huống hội thoại mô phỏng</span>
+              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                <span className="sm" style={{ color: "var(--pur-txt)", fontWeight: 700 }}>Tình huống hội thoại phân nhánh</span>
+                <span className="badge badge--s badge--acc">Lingvano Dialogue</span>
+              </div>
               <button
                 type="button"
                 className="icon-circle"
@@ -104,7 +113,50 @@ function Inner() {
                 <Volume2 size={20} aria-hidden />
               </button>
             </div>
-            <span className="bb" style={{ color: "var(--txt)", fontSize: 15 }}>{meta.dialogue.partnerPrompt}</span>
+            <span className="bb" style={{ color: "var(--txt)", fontSize: 16 }}>{meta.dialogue.partnerPrompt}</span>
+
+            {/* Chọn nhánh phản hồi của bạn */}
+            <div className="col col--tight" style={{ gap: 6, marginTop: 4 }}>
+              <span className="sm" style={{ color: "var(--txt2)", fontWeight: 600 }}>Chọn hướng phản hồi của bạn:</span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setBranch("A")}
+                  className="card"
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    minHeight: 48,
+                    border: branch === "A" ? "2px solid var(--pur)" : "1.5px solid var(--line)",
+                    background: branch === "A" ? "var(--pur-soft)" : "var(--surface)",
+                    color: branch === "A" ? "var(--pur-txt)" : "var(--txt)",
+                    fontWeight: 600,
+                    fontSize: 13,
+                  }}
+                  aria-pressed={branch === "A"}
+                >
+                  🟢 Hướng A: Thuận tình / Trực tiếp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBranch("B")}
+                  className="card"
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    minHeight: 48,
+                    border: branch === "B" ? "2px solid var(--pur)" : "1.5px solid var(--line)",
+                    background: branch === "B" ? "var(--pur-soft)" : "var(--surface)",
+                    color: branch === "B" ? "var(--pur-txt)" : "var(--txt)",
+                    fontWeight: 600,
+                    fontSize: 13,
+                  }}
+                  aria-pressed={branch === "B"}
+                >
+                  🟡 Hướng B: Cân nhắc / Nhẹ nhàng
+                </button>
+              </div>
+            </div>
           </div>
 
           <SkeletonDemo frames={frames} />
@@ -143,8 +195,8 @@ function Inner() {
                 <MessageCircle size={22} aria-hidden />
               </span>
               <div className="col col--tight grow">
-                <span className="sm" style={{ color: "var(--grn-txt)", fontWeight: 700 }}>Người thân đáp lại:</span>
-                <span className="bb" style={{ fontSize: 16, color: "var(--txt)" }}>{meta.dialogue.partnerReply}</span>
+                <span className="sm" style={{ color: "var(--grn-txt)", fontWeight: 700 }}>Người thân đáp lại ({branch === "A" ? "Hướng A" : "Hướng B"}):</span>
+                <span className="bb" style={{ fontSize: 16, color: "var(--txt)" }}>{branchReply}</span>
               </div>
             </div>
           )}

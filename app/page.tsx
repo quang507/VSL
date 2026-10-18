@@ -4,7 +4,7 @@ import { asset } from "@/lib/base";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play, Map, Star, Sparkles, Gift, RotateCcw, AlertTriangle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play, Map, Star, Sparkles, Gift, RotateCcw, AlertTriangle, ShieldCheck } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LoopVideo from "@/components/LoopVideo";
 import { Bar, Btn } from "@/components/ui";
@@ -321,6 +321,47 @@ export default function Home() {
                 </div>
               );
             })}
+
+            {/* Trạm kiểm soát vượt chặng (Lingvano Unit Checkpoint Exam) */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 20,
+              }}
+            >
+              <Link
+                href={`/quiz?checkpoint=${current.id}`}
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  background: done >= current.words.length ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #f59e0b, #d97706)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  boxShadow: "0 10px 28px rgba(217, 119, 6, 0.4)",
+                  border: "4px solid #fff",
+                  textDecoration: "none",
+                }}
+                aria-label="Thi vượt chặng Unit Checkpoint"
+              >
+                <ShieldCheck size={36} color="#fff" aria-hidden />
+              </Link>
+              <div className="col col--tight" style={{ alignItems: "center" }}>
+                <span className="bb" style={{ fontSize: 14, color: "var(--txt)" }}>
+                  Thi vượt chặng
+                </span>
+                <span className="sm num" style={{ color: "var(--org-txt)", fontWeight: 700 }}>
+                  Unit Checkpoint · Đạt 80%
+                </span>
+              </div>
+            </div>
           </div>
         </section>
       )}
