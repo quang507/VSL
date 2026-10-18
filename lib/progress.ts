@@ -149,13 +149,53 @@ export function levelInfo(score: number) {
   return { level, into, size: SIZE, pct: Math.round((into / SIZE) * 100) };
 }
 
+// ---- Sức mạnh trí nhớ của từ (0..100%) ----
+export function wordStrength(stat?: WordStat, now = Date.now()): number {
+  if (!stat || stat.correct <= 0) return 0;
+  const box = stat.box ?? 1;
+  const last = stat.last ?? now;
+  const due = stat.due ?? (last + 24 * 3600_000);
+  
+  if (now <= last) return 100;
+  if (now >= due) {
+    const overdueHours = (now - due) / 3600_000;
+    // Tụt dần theo thời gian quá hạn ôn tập, tối thiểu còn 20%
+    return Math.max(20, Math.round(50 - overdueHours * 2));
+  }
+  // Đang trong hạn ôn: từ 100% tụt dần về 60%
+  const totalDuration = due - last;
+  const elapsed = now - last;
+  const ratio = Math.min(1, Math.max(0, elapsed / totalDuration));
+  return Math.round(100 - ratio * 40);
+}
+
 // ---- Ôn tập lặp lại: từ đã học mà tới hạn ôn ----
 export function dueWords(p: Progress, labels: string[], now = Date.now()): string[] {
   const set = new Set(labels);
   return Object.entries(p.words)
-    .filter(([w, s]) => set.has(w) && s.correct > 0 && (s.due ?? 0) <= now)
+    .filter(([w, s]) => set.has(w) && s.correct > 0 && ((s.due ?? 0) <= now || (s.box ?? 0) < 2))
     .sort((a, b) => (a[1].due ?? 0) - (b[1].due ?? 0))
     .map(([w]) => w);
+}
+
+// ---- Đánh dấu các từ đã hoàn thành (dùng cho Placement Test vượt cấp) ----
+export function markWordsLearned(words: string[]): Progress {
+  const p = loadProgress();
+  const now = Date.now();
+  for (const w of words) {
+    if (!p.words[w] || p.words[w].correct === 0) {
+      p.words[w] = {
+        attempts: 1,
+        correct: 1,
+        box: 2,
+        last: now,
+        due: now + 72 * 3600_000,
+      };
+      p.score += 10;
+    }
+  }
+  save(p);
+  return p;
 }
 
 // ---- Cài đặt ----

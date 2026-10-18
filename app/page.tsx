@@ -4,7 +4,7 @@ import { asset } from "@/lib/base";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play, Map, Star, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight, Lock, MessageCircle, Play, Map, Star, Sparkles, Gift, RotateCcw, AlertTriangle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import LoopVideo from "@/components/LoopVideo";
 import { Bar, Btn } from "@/components/ui";
@@ -12,7 +12,7 @@ import { buildLessons } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { useProgress } from "@/lib/useProgress";
 import { useProfile } from "@/lib/profile";
-import { countLearned, dayStreak, isLearned, todayCount } from "@/lib/progress";
+import { countLearned, dayStreak, isLearned, todayCount, dueWords } from "@/lib/progress";
 import { lessonUrl, practiceUrl } from "@/lib/nav";
 import { thumbUrl } from "@/lib/theme";
 
@@ -66,6 +66,56 @@ export default function Home() {
           Chuỗi {streak} ngày
         </Link>
       </header>
+
+      {/* 1. Hộp ôn tập thông minh (Daily SRS Review Banner) */}
+      {(() => {
+        const dueList = dueWords(progress, labels);
+        if (dueList.length === 0) return null;
+        return (
+          <section
+            className="card"
+            style={{
+              background: "linear-gradient(135deg, var(--yel-soft), var(--brand-soft))",
+              borderColor: "transparent",
+              padding: "16px 18px",
+              boxShadow: "var(--shadow-tile)",
+              gap: 12,
+            }}
+            aria-label="Cần ôn tập hôm nay"
+          >
+            <div className="row row--between" style={{ alignItems: "center" }}>
+              <div className="row" style={{ gap: 10, alignItems: "center" }}>
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "var(--yel)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--yel-txt)",
+                  }}
+                  aria-hidden
+                >
+                  <RotateCcw size={22} />
+                </span>
+                <div className="col col--tight">
+                  <span className="bb" style={{ fontSize: 16, color: "var(--txt)" }}>
+                    Hộp ôn tập hôm nay
+                  </span>
+                  <span className="sm" style={{ color: "var(--txt2)" }}>
+                    {dueList.length} từ cần củng cố trí nhớ
+                  </span>
+                </div>
+              </div>
+              <Btn href="/the-ghi-nho" size="sm" style={{ minHeight: 44, padding: "0 14px", fontWeight: 700 }}>
+                Ôn ngay
+              </Btn>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Tiếp tục học */}
       {current && nextWord && (
@@ -227,6 +277,47 @@ export default function Home() {
                   >
                     {w}
                   </span>
+                  {/* Rương báu mở quà (Treasure Chest Milestone) phong cách Lingvano sau mỗi 3 bài */}
+                  {(i + 1) % 4 === 0 && (
+                    <div
+                      style={{
+                        position: "relative",
+                        zIndex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 10,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 20,
+                          background: ok ? "var(--yel)" : "var(--sunk)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: ok ? "var(--yel-txt)" : "var(--txt2)",
+                          boxShadow: ok ? "0 8px 24px rgba(252, 207, 72, 0.45)" : "none",
+                          border: "3px solid #fff",
+                          cursor: ok ? "pointer" : "default",
+                        }}
+                        onClick={() => {
+                          if (ok) alert("🎉 Bạn đã mở rương báu! Nhận thêm 20 XP và 1 khiên bảo vệ chuỗi!");
+                        }}
+                        aria-label={`Rương thưởng mốc ${Math.floor((i + 1) / 4)}`}
+                      >
+                        <Gift size={28} aria-hidden />
+                      </button>
+                      <span className="sm num" style={{ fontSize: 11, fontWeight: 700, color: ok ? "var(--org-txt)" : "var(--txt2)" }}>
+                        {ok ? "Mở rương" : "Rương khóa"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

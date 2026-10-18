@@ -8,6 +8,7 @@ import { useProfile } from "@/lib/profile";
 import { useLabels } from "@/lib/useLabels";
 import { practiceUrl } from "@/lib/nav";
 import { speakVietnamese } from "@/lib/feedback";
+import { loadProgress, wordStrength } from "@/lib/progress";
 import { QIPEDC_SOURCE, VARIANT_NAME, fold, preferredVariant, useQipedc, variantsOf, videoUrl, wordUrl } from "@/lib/qipedc";
 import Link from "next/link";
 import SaveBtn from "@/components/SaveBtn";
@@ -113,6 +114,27 @@ function WordInner() {
             <Volume2 size={22} aria-hidden />
           </button>
         </div>
+        {/* Sức mạnh trí nhớ của từ (Lingvano Word Memory Strength) */}
+        {(() => {
+          const prog = loadProgress();
+          const stat = prog.words[entry.w];
+          const strength = wordStrength(stat);
+          if (!stat || stat.correct <= 0) return null;
+          const color = strength >= 70 ? "var(--pos)" : strength >= 40 ? "var(--warn)" : "var(--neg)";
+          return (
+            <div className="row" style={{ gap: 8, alignItems: "center", marginTop: 4 }}>
+              <span className="sm num" style={{ fontWeight: 700, color }}>
+                Độ nhớ: {strength}%
+              </span>
+              <div style={{ width: 100, height: 6, background: "var(--line)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${strength}%`, height: "100%", background: color, borderRadius: 4 }} />
+              </div>
+              <span className="sm" style={{ color: "var(--txt2)" }}>
+                {strength >= 70 ? "Nhớ chắc" : strength >= 40 ? "Nên ôn lại" : "Sắp quên!"}
+              </span>
+            </div>
+          );
+        })()}
       </header>
 
       {entry.s.length > 1 && (

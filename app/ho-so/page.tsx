@@ -1,9 +1,9 @@
 "use client";
 
 import { asset } from "@/lib/base";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Zap, CheckCircle2, Bookmark, Star, Lock, Trophy, Flame, Sprout, BookOpen, GraduationCap, Gem, Target, Flag, ArrowRight, Aperture, Settings, Shield } from "lucide-react";
+import { Zap, CheckCircle2, Bookmark, Star, Lock, Trophy, Flame, Sprout, BookOpen, GraduationCap, Gem, Target, Flag, ArrowRight, Aperture, Settings, Shield, Award, Download } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { Bar } from "@/components/ui";
 import { useLabels } from "@/lib/useLabels";
@@ -131,6 +131,78 @@ export default function ProfilePage() {
             </div>
           );
         })}
+      </section>
+
+      {/* Tấm bằng chứng nhận hoàn thành mốc (Lingvano Milestone Certificate) */}
+      <section
+        className="card"
+        style={{
+          marginTop: 10,
+          padding: "18px 20px",
+          background: "linear-gradient(135deg, #1e2e5c, #2c63c4)",
+          color: "#fff",
+          borderRadius: 24,
+          boxShadow: "0 12px 32px rgba(44, 99, 196, 0.25)",
+          gap: 12,
+        }}
+        aria-label="Chứng nhận tiến độ"
+      >
+        <div className="row row--between" style={{ alignItems: "center" }}>
+          <div className="row" style={{ gap: 10, alignItems: "center" }}>
+            <span
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              aria-hidden
+            >
+              <Award size={24} color="#fccf48" />
+            </span>
+            <div className="col col--tight">
+              <span style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, color: "#fccf48", fontWeight: 700 }}>
+                Chứng nhận hoàn thành
+              </span>
+              <span className="bb" style={{ fontSize: 17, color: "#fff" }}>
+                Cấp {lvl.level} · {profile.name || "Bạn"}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            style={{
+              minHeight: 44,
+              padding: "0 16px",
+              background: "rgba(255,255,255,0.2)",
+              color: "#fff",
+              borderColor: "transparent",
+              fontWeight: 700,
+            }}
+            onClick={() => {
+              if (navigator.share) {
+                void navigator.share({
+                  title: `Chứng nhận Ngôn ngữ ký hiệu VSLV: ${profile.name || "Tôi"}`,
+                  text: `Tôi vừa hoàn thành ${learned} từ ký hiệu và đạt Cấp ${lvl.level} trên VSLV!`,
+                  url: window.location.origin,
+                });
+              } else {
+                alert(`🏅 CHỨNG NHẬN VSLV\nChúc mừng ${profile.name || "Bạn"} đã đạt Cấp ${lvl.level} và học thuộc ${learned} từ ký hiệu!`);
+              }
+            }}
+          >
+            Chia sẻ
+          </button>
+        </div>
+        <div className="row row--between t-sub" style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 8 }}>
+          <span>Đã thuộc: {learned} từ</span>
+          <span>Chuỗi: {dayStreak(progress)} ngày</span>
+          <span>Điểm: {progress.score} XP</span>
+        </div>
       </section>
 
       <h2 className="sub" style={{ marginTop: 8 }}>

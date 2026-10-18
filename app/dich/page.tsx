@@ -3,12 +3,14 @@
 import CameraError from "@/components/CameraError";
 import { UNCLEAR_PHRASES } from "@/lib/phrases";
 import { useEffect, useState } from "react";
-import { Volume2, Maximize2, Trash2, Pause, Play, X, Info, Hand, Loader2, FlaskConical } from "lucide-react";
+import { Volume2, Maximize2, Trash2, Pause, Play, X, Info, Hand, Loader2, FlaskConical, BookOpen } from "lucide-react";
 import CameraStage from "@/components/CameraStage";
 import { Btn, Dialog, IconBtn, Pill, Segmented, TopBar } from "@/components/ui";
 import { useContinuousSign } from "@/lib/useContinuousSign";
 import { MODEL_URL, LABELS_URL, WORD_FEATURES } from "@/lib/constants";
 import type { Prediction } from "@/lib/classifier";
+import { wordUrl } from "@/lib/qipedc";
+import Link from "next/link";
 
 import { PHRASE_MODEL, PHRASE_LABELS } from "@/lib/phrases";
 
@@ -182,17 +184,29 @@ export default function Translate() {
               </button>
             ))}
         </div>
-        <Btn
-          level="danger"
-          size="md"
-          icon={Trash2}
-          onClick={() => {
-            setItems((xs) => xs.filter((_, i) => i !== editing));
-            setEditing(null);
-          }}
-        >
-          Xoá từ này
-        </Btn>
+        <div className="row" style={{ gap: 10, width: "100%", marginTop: 8 }}>
+          {editing !== null && (
+            <Link
+              href={wordUrl(items[editing]?.top[items[editing]?.pick]?.label ?? "")}
+              className="btn btn--secondary btn--md"
+              style={{ flex: 1, minHeight: 44, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            >
+              <BookOpen size={18} aria-hidden /> Tra từ điển
+            </Link>
+          )}
+          <Btn
+            level="danger"
+            size="md"
+            icon={Trash2}
+            style={{ flex: 1 }}
+            onClick={() => {
+              setItems((xs) => xs.filter((_, i) => i !== editing));
+              setEditing(null);
+            }}
+          >
+            Xoá từ
+          </Btn>
+        </div>
       </Dialog>
 
       {big && (

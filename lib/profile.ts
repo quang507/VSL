@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 const KEY = "vsl-profile-v1";
 
 export type Region = "hcm" | "hn" | "hp" | "all";
+export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 
 export interface Profile {
   name: string;
@@ -17,6 +18,7 @@ export interface Profile {
   leftHanded: boolean; // thuận tay trái: tự động lật gương toàn bộ video mẫu
   reminder: boolean; // nhắc nhở học hàng ngày
   reminderTime: string; // giờ nhắc học hàng ngày (vd: 20:00)
+  experienceLevel?: ExperienceLevel; // trình độ đầu vào (Lingvano Placement Test)
 }
 
 export const REGIONS: { id: Region; name: string; sub: string }[] = [

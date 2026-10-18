@@ -3,11 +3,11 @@
 import { asset } from "@/lib/base";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, MapPin, Check, ShieldCheck } from "lucide-react";
+import { ChevronLeft, MapPin, Check, ShieldCheck, Sparkles, Compass, GraduationCap } from "lucide-react";
 import { Bar, Btn, IconBtn, IconCircle } from "@/components/ui";
 import LoopVideo from "@/components/LoopVideo";
-import { REGIONS, saveProfile, type Region } from "@/lib/profile";
-import { setDailyGoal } from "@/lib/progress";
+import { REGIONS, saveProfile, type Region, type ExperienceLevel } from "@/lib/profile";
+import { setDailyGoal, markWordsLearned } from "@/lib/progress";
 
 const GOALS = [
   { v: 3, t: "Nhẹ nhàng", s: "3 lần ký đúng mỗi ngày" },
@@ -16,17 +16,50 @@ const GOALS = [
   { v: 15, t: "Tăng tốc", s: "15 lần ký đúng mỗi ngày" },
 ];
 
+const LEVELS: { id: ExperienceLevel; title: string; desc: string; icon: typeof Compass; badge: string }[] = [
+  {
+    id: "beginner",
+    title: "Mới bắt đầu hoàn toàn",
+    desc: "Chưa biết ngôn ngữ ký hiệu. Học từng cử chỉ nền tảng từ Chặng 1.",
+    icon: Compass,
+    badge: "Người mới",
+  },
+  {
+    id: "intermediate",
+    title: "Đã biết cơ bản",
+    desc: "Đã thuộc một số từ và cử chỉ quen thuộc. Mở khóa Chặng 1, bắt đầu ngay từ Chặng 2.",
+    icon: Sparkles,
+    badge: "Vượt cấp",
+  },
+  {
+    id: "advanced",
+    title: "Đã giao tiếp được",
+    desc: "Tự tin ký hiệu trong đời sống. Mở khóa các bài để tự do rèn luyện và kiểm tra tốc độ.",
+    icon: GraduationCap,
+    badge: "Nâng cao",
+  },
+];
+
 export default function Onboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [region, setRegion] = useState<Region>("hcm");
+  const [level, setLevel] = useState<ExperienceLevel>("beginner");
   const [goal, setGoal] = useState(5);
-  const total = 4;
+  const total = 5;
 
   const finish = () => {
-    saveProfile({ name: name.trim(), region, onboarded: true });
+    saveProfile({ name: name.trim(), region, experienceLevel: level, onboarded: true });
     setDailyGoal(goal);
+    if (level === "intermediate") {
+      markWordsLearned(["Bệnh nhân", "Bệnh viện", "Bộ y tế", "Cách ly", "Khu cách ly", "Khẩu trang", "Lây bệnh", "Sốt", "Virus", "Phục hồi", "Cứu", "Nôn ói", "Ho", "Xuất viện", "Khai báo"]);
+    } else if (level === "advanced") {
+      markWordsLearned([
+        "Bệnh nhân", "Bệnh viện", "Bộ y tế", "Cách ly", "Khu cách ly", "Khẩu trang", "Lây bệnh", "Sốt", "Virus", "Phục hồi", "Cứu", "Nôn ói", "Ho", "Xuất viện", "Khai báo",
+        "Chào", "Cảm ơn", "Xin lỗi", "Xin phép", "Mời vào", "Đồng ý", "Vâng lời", "Chấp nhận",
+      ]);
+    }
     router.replace("/");
   };
 
@@ -158,6 +191,77 @@ export default function Onboarding() {
 
       {step === 3 && (
         <>
+          <h1 className="h2">Bạn đã biết gì về ngôn ngữ ký hiệu?</h1>
+          <p className="bm" style={{ margin: 0 }}>
+            Khảo sát nhanh giúp VSLV điều chỉnh điểm xuất phát phù hợp nhất với bạn.
+          </p>
+          <div className="col" style={{ gap: 12 }}>
+            {LEVELS.map((l) => {
+              const sel = l.id === level;
+              const Icon = l.icon;
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setLevel(l.id)}
+                  aria-pressed={sel}
+                  className="card card--row"
+                  style={{
+                    border: sel ? "2.5px solid var(--brand)" : "2.5px solid transparent",
+                    background: sel ? "var(--brand-soft)" : "var(--surface)",
+                    textAlign: "left",
+                    padding: "16px 14px",
+                    gap: 14,
+                  }}
+                >
+                  <IconCircle
+                    icon={Icon}
+                    bg={sel ? "var(--surface)" : "var(--neu)"}
+                    fg={sel ? "var(--brand)" : "var(--txt2)"}
+                    square
+                    size={48}
+                  />
+                  <span className="col col--tight grow">
+                    <span className="row" style={{ gap: 8, alignItems: "center" }}>
+                      <span className="bb">{l.title}</span>
+                      <span
+                        className="pill"
+                        style={{
+                          background: sel ? "var(--brand)" : "var(--line)",
+                          color: sel ? "#fff" : "var(--txt2)",
+                          fontSize: 11,
+                          padding: "2px 8px",
+                        }}
+                      >
+                        {l.badge}
+                      </span>
+                    </span>
+                    <span className="sm">{l.desc}</span>
+                  </span>
+                  <span
+                    className="icon-circle"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      background: sel ? "var(--brand)" : "var(--surface)",
+                      border: sel ? "none" : "2px solid var(--line)",
+                      color: "#fff",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {sel && <Check size={16} aria-hidden />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="grow" />
+          <Btn onClick={() => setStep(4)}>Tiếp tục</Btn>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
           <h1 className="h2">Mỗi ngày bạn muốn luyện bao nhiêu?</h1>
           <div className="col">
             {GOALS.map((g) => {
@@ -188,11 +292,11 @@ export default function Onboarding() {
             })}
           </div>
           <div className="grow" />
-          <Btn onClick={() => setStep(4)}>Tiếp tục</Btn>
+          <Btn onClick={() => setStep(5)}>Tiếp tục</Btn>
         </>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <>
           <LoopVideo word="Cảm ơn" style={{ aspectRatio: "4 / 3", maxWidth: 520, width: "100%", margin: "0 auto" }} />
           <h1 className="h2">Camera giúp chấm điểm ký hiệu</h1>
