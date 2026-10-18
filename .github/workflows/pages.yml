@@ -4,7 +4,7 @@ name: Deploy web to GitHub Pages
 
 on:
   push:
-    branches: [main, redesign-vslv]
+    branches: [main] # chỉ main lên production; nhánh khác dùng workflow_dispatch hoặc preview riêng
   workflow_dispatch:
 
 permissions:

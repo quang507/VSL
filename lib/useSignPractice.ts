@@ -8,6 +8,8 @@ import { loadModel, predictTopK, type Prediction } from "./classifier";
 import { MODEL_URL, LABELS_URL } from "./constants";
 import { buildFrameFeatures, resampleSequence, type HandResult } from "./landmarks";
 import { drawHands } from "./draw";
+import { cameraErrorText, openCamera, STALL_MS, type CameraHandle } from "./camera";
+import { createWaveDetector } from "./waveDetector";
 
 export type Phase = "loading" | "ready" | "countdown" | "recording" | "result";
 
@@ -36,27 +38,6 @@ export function computeHint(hands: HandResult[]): Hint {
   return "ok";
 }
 
-/** Nhận diện bàn tay mở xòe ngón giơ cao (Open Palm / Vẫy tay chào) để kích hoạt không chạm */
-export function isOpenPalmWave(hands: HandResult[]): boolean {
-  if (!hands.length) return false;
-  for (const h of hands) {
-    const pts = h.points;
-    if (pts.length < 21) continue;
-    // Bàn tay giơ ở nửa trên khung hình (cổ tay y < 0.7)
-    if (pts[0].y > 0.75) continue;
-    // Các đầu ngón tay (4, 8, 12, 16, 20) phải cao hơn các khớp gốc MCP (2, 5, 9, 13, 17)
-    const fingersUp =
-      pts[8].y < pts[6].y &&
-      pts[12].y < pts[10].y &&
-      pts[16].y < pts[14].y &&
-      pts[20].y < pts[18].y;
-    // Khoảng cách xòe giữa ngón trỏ và ngón út
-    const span = Math.abs(pts[4].x - pts[20].x);
-    if (fingersUp && span > 0.1) return true;
-  }
-  return false;
-}
-
 /** modelUrl/labelsUrl mặc định = model 100 từ đơn; truyền model khác cho "Câu giao tiếp" */
 export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string = LABELS_URL, features: FeatureKind = "hands") {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -76,38 +57,41 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
   const [hint, setHint] = useState<Hint>("none");
   const [modelReady, setModelReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
-  const [wavingDetected, setWavingDetected] = useState(false);
-  const waveFramesRef = useRef(0);
+  /** Tăng 1 mỗi lần nhận ra một cái vẫy tay (xem waveDetector.ts) */
+  const [waveTick, setWaveTick] = useState(0);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const camRef = useRef<CameraHandle | null>(null);
+  const [stalled, setStalled] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
-    let stream: MediaStream | null = null;
     let cancelled = false;
     let lastVideoTime = -1;
+    let lastAdvance = 0;
+    let isStalled = false;
+    const cam = openCamera({
+      onError: (e) => !cancelled && setCameraError(cameraErrorText(e)),
+      onReopen: () => !cancelled && setCameraError(""),
+    });
+    camRef.current = cam;
 
     (async () => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: 640, height: 480 },
-          audio: false,
-        });
-        if (cancelled) {
-          s.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        stream = s;
+        await cam.ready;
+        if (cancelled) return;
         const video = videoRef.current;
-        if (video) {
-          video.srcObject = stream;
+        const first = cam.current();
+        if (video && first) {
+          video.srcObject = first;
           await video.play();
         }
 
         const hl = await getHandLandmarker();
         const fd = features === "face" ? await getFaceDetector() : null;
         const faces = createFaceTracker();
+        const waves = createWaveDetector();
         // Model có thể chưa tồn tại (chưa train) -> KHÔNG được chặn UI
         let ok = false;
         try {
@@ -124,20 +108,22 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
           const canvas = canvasRef.current;
           const ctx = canvas?.getContext("2d") ?? null;
           const v = videoRef.current;
+          const stream = cam.current();
           // Thẻ <video> có thể được mount SAU khi camera mở (vd. bước "Xem mẫu"
-          // chưa hiện khung camera) → gắn lại luồng mỗi khi thẻ mới xuất hiện.
+          // chưa hiện khung camera), hoặc luồng vừa được mở lại → gắn lại luồng.
           if (v && stream && v.srcObject !== stream) {
             v.srcObject = stream;
             v.play().catch(() => {});
           }
+          const now = performance.now();
           // Chỉ xử lý khi camera có frame MỚI (màn 60–120 Hz gọi loop nhiều hơn số frame camera)
           if (v && v.readyState >= 2 && v.currentTime !== lastVideoTime) {
             lastVideoTime = v.currentTime;
+            lastAdvance = now;
             if (canvas && canvas.width !== v.videoWidth && v.videoWidth) {
               canvas.width = v.videoWidth;
               canvas.height = v.videoHeight;
             }
-            const now = performance.now();
             const hands = detectHands(hl, v, now);
             if (ctx && canvas) drawHands(ctx, hands, canvas.width, canvas.height);
             if (fd) {
@@ -158,33 +144,30 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
               setHint(h);
             }
 
-            // Nhận diện giơ bàn tay vẫy chào để kích hoạt rảnh tay
-            if (isOpenPalmWave(hands)) {
-              waveFramesRef.current += 1;
-              if (waveFramesRef.current >= 4) {
-                setWavingDetected(true);
-              }
-            } else {
-              waveFramesRef.current = Math.max(0, waveFramesRef.current - 1);
-              if (waveFramesRef.current === 0) {
-                setWavingDetected(false);
-              }
-            }
+            // Vẫy tay thật (đổi chiều qua lại) để bắt đầu ghi không cần chạm; đang ghi thì không xét
+            if (recordingRef.current) waves.reset();
+            else if (waves.push(now, hands)) setWaveTick((t) => t + 1);
 
             if (recordingRef.current && hands.length > 0) {
               framesRef.current.push(buildFrameFeatures(hands, v.videoHeight / v.videoWidth, fd ? faces.ref() : undefined));
             }
+          } else if (!stream || !v) {
+            // đang ở nền / đang mở lại camera / khung camera đang ẩn: không tính là đứng hình
+            lastAdvance = now;
+          }
+          const s = now - lastAdvance > STALL_MS;
+          if (s !== isStalled) {
+            isStalled = s;
+            setStalled(s);
+            if (s) v?.play().catch(() => {}); // iOS đôi khi chỉ dừng thẻ <video> chứ luồng vẫn sống
           }
           rafRef.current = requestAnimationFrame(loop);
         };
+        lastAdvance = performance.now();
         rafRef.current = requestAnimationFrame(loop);
         setPhase("ready");
-      } catch (e: any) {
-        if (!cancelled) {
-          setCameraError(
-            e?.message ?? "Không truy cập được camera. Kiểm tra quyền camera."
-          );
-        }
+      } catch (e: unknown) {
+        if (!cancelled) setCameraError(cameraErrorText(e));
       }
     })();
 
@@ -198,9 +181,16 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-      stream?.getTracks().forEach((t) => t.stop());
+      cam.dispose();
+      camRef.current = null;
     };
   }, [modelUrl, labelsUrl, features]);
+
+  /** Camera đứng hình (bị hệ điều hành ngắt) → người dùng chạm để mở lại */
+  const resumeCamera = useCallback(() => {
+    setStalled(false);
+    void camRef.current?.reopen();
+  }, []);
 
   // Đếm ngược -> quay -> dự đoán. Trả về Prediction, hoặc null nếu chưa có model / không thấy tay.
   const start = useCallback((): Promise<Prediction | null> => {
@@ -259,7 +249,9 @@ export function useSignPractice(modelUrl: string = MODEL_URL, labelsUrl: string 
     faceSeen,
     modelReady,
     cameraError,
-    wavingDetected,
+    stalled,
+    resumeCamera,
+    waveTick,
     start,
   };
 }

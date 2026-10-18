@@ -49,9 +49,10 @@ def extract_from_video(path: str, hands) -> np.ndarray:
         if res.multi_hand_landmarks and res.multi_handedness:
             for lm, handed in zip(res.multi_hand_landmarks, res.multi_handedness):
                 label = handed.classification[0].label  # "Left"/"Right"
+                score = handed.classification[0].score  # dùng khi hai tay cùng nhãn
                 pts = np.array([[p.x, p.y, p.z] for p in lm.landmark],
                                dtype=np.float32)
-                hand_list.append({"label": label, "points": pts})
+                hand_list.append({"label": label, "score": score, "points": pts})
         # bỏ qua frame không thấy tay nào
         if hand_list:
             frames.append(build_frame_features(hand_list))

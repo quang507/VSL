@@ -54,7 +54,7 @@ function AutoCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked
   const [unclear, setUnclear] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
-  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
+  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, stalled, resumeCamera, setPaused } = useContinuousSign(modelUrl, labelsUrl, (top) => {
     if (lockedRef.current) return;
     const best = top[0];
     if (!best || best.confidence < MIN_CONF) {
@@ -92,7 +92,7 @@ function AutoCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked
 
   return (
     <>
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={0} handsVisible={handsVisible} hint={features === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} corner={corner} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={0} handsVisible={handsVisible} hint={features === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} stalled={stalled} onResume={resumeCamera} corner={corner} />
       {cameraError && <CameraError note={errorNote} />}
       {msg && (
         <p className="row" role="status" aria-live="polite" style={{ margin: 0, gap: 8, justifyContent: "center", textAlign: "center", fontWeight: 700, color: "var(--ink)" }}>
@@ -105,7 +105,7 @@ function AutoCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked
 }
 
 function ManualCapture({ modelUrl, labelsUrl, features = "hands", onResult, locked, attempted, errorNote, manualLabel, corner }: Props) {
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, faceSeen, modelReady, cameraError, wavingDetected, start } = useSignPractice(modelUrl, labelsUrl, features);
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, faceSeen, modelReady, cameraError, stalled, resumeCamera, waveTick, start } = useSignPractice(modelUrl, labelsUrl, features);
   const [noHands, setNoHands] = useState(false);
   const busy = phase === "loading" || phase === "countdown" || phase === "recording";
 
@@ -116,16 +116,19 @@ function ManualCapture({ modelUrl, labelsUrl, features = "hands", onResult, lock
     onResult(r);
   };
 
-  // Kích hoạt rảnh tay (Hands-free Gesture): Giơ bàn tay xòe vẫy chào trước camera thì tự bắt đầu đếm nhịp
+  // Kích hoạt rảnh tay: VẪY bàn tay xoè qua lại trước camera thì tự bắt đầu đếm ngược.
+  // Mỗi cái vẫy chỉ được xử lý một lần; vẫy lúc đang đếm/ghi thì bỏ qua (không để dành cho sau).
+  // Dùng được cả sau khi đã chấm (= bấm "Thử lại"), giống nút bấm.
+  const handledWave = useRef(0);
   useEffect(() => {
-    if (wavingDetected && phase === "ready" && !busy && !locked) {
-      void go();
-    }
-  }, [wavingDetected, phase, busy, locked]);
+    if (waveTick === handledWave.current) return;
+    handledWave.current = waveTick;
+    if (!busy && !locked && !cameraError) void go();
+  }, [waveTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={features === "face" && !faceSeen && phase !== "loading" ? "noface" : hint} error={!!cameraError} corner={corner} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={features === "face" && !faceSeen && phase !== "loading" ? "noface" : hint} error={!!cameraError} stalled={stalled} onResume={resumeCamera} corner={corner} />
       {cameraError && <CameraError note={errorNote} />}
       {!modelReady && !cameraError && phase !== "loading" && (
         <div className="tile t-yel" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

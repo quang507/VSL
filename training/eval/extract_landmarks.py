@@ -14,6 +14,10 @@ from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision
 from tqdm import tqdm
 
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+from hand_slots import is_same_label, resolve_same_label  # noqa: E402
+
 NUM_HANDS = 2; FEAT_HAND = 63; FEAT = 126; WRIST = 0; MIDDLE_MCP = 9; SAMPLE_FRAMES = 36
 TASK_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 
@@ -26,7 +30,7 @@ def normalize_hand(points):
 
 def build_frame(hands):
     f = np.zeros(FEAT, dtype=np.float32); slot = {"Left": 0, "Right": 1}
-    for h in hands:
+    for h in resolve_same_label(hands):  # hai tay cùng nhãn: không để tay sau ghi đè tay trước
         i = slot.get(h["label"])
         if i is None: continue
         f[i * FEAT_HAND:(i + 1) * FEAT_HAND] = normalize_hand(h["points"])
@@ -52,7 +56,7 @@ def _init(task):
 def _extract(job):
     i_job, p = job
     cap = cv2.VideoCapture(p); total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-    want = sample_idx(total, SAMPLE_FRAMES); frames = []; i = 0
+    want = sample_idx(total, SAMPLE_FRAMES); frames = []; i = 0; same = 0
     while True:
         ok, fr = cap.read()
         if not ok: break
@@ -60,11 +64,12 @@ def _extract(job):
             img = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB)))
             res = _LM.detect(img); hl = []
             for lms, hd in zip(res.hand_landmarks, res.handedness):
-                hl.append({"label": hd[0].category_name, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)})
+                hl.append({"label": hd[0].category_name, "score": hd[0].score, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)})
+            same += is_same_label(hl)
             if hl: frames.append(build_frame(hl))
         i += 1
     cap.release()
-    return i_job, (np.array(frames, dtype=np.float32) if frames else None)
+    return i_job, (np.array(frames, dtype=np.float32) if frames else None), same
 
 
 def main():
@@ -99,10 +104,10 @@ def main():
     print(len(samples), "video,", len(labels), "nhãn")
 
     from multiprocessing import Pool
-    results = [None] * len(samples)
+    results = [None] * len(samples); same = [0] * len(samples)
     with Pool(a.workers, initializer=_init, initargs=(task,)) as pool:
-        for k, (j, fr) in enumerate(pool.imap_unordered(_extract, list(enumerate(p for p, _ in samples)), chunksize=4)):
-            results[j] = fr
+        for k, (j, fr, n) in enumerate(pool.imap_unordered(_extract, list(enumerate(p for p, _ in samples)), chunksize=4)):
+            results[j] = fr; same[j] = n
             if k % 200 == 0: print(f"{k}/{len(samples)}", flush=True)
     seqs, ys, names = [], [], []
     for (p, lab), fr in zip(samples, results):
@@ -114,6 +119,7 @@ def main():
                         data=np.concatenate(seqs), lens=lens, y=np.array(ys), names=np.array(names))
     json.dump(labels, open(os.path.join(a.out, "labels.json"), "w", encoding="utf-8"), ensure_ascii=False)
     print("Xong:", len(seqs), "mẫu, bỏ", len(samples) - len(seqs), "video không thấy tay")
+    print("Frame hai tay CÙNG nhãn (đã xếp lại ô):", sum(same), "frame ở", sum(n > 0 for n in same), "video", flush=True)
 
 
 if __name__ == "__main__":

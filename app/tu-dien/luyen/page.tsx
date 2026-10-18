@@ -3,7 +3,7 @@
 import CameraError from "@/components/CameraError";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Gauge, Info } from "lucide-react";
+import { Gauge, Info, WifiOff } from "lucide-react";
 import CameraStage from "@/components/CameraStage";
 import { TopBar } from "@/components/ui";
 import { useSignPractice } from "@/lib/useSignPractice";
@@ -25,8 +25,10 @@ function Inner() {
   const sense = entry?.s[Math.min(si, entry.s.length - 1)];
   const [variant, setVariant] = useState("");
   const [slow, setSlow] = useState(true);
+  // Video lấy từ server Bộ GD&ĐT: mạng rớt / server lỗi thì báo rõ thay vì ô đen
+  const [failedId, setFailedId] = useState<string | null>(null);
   const demo = useRef<HTMLVideoElement>(null);
-  const { videoRef, canvasRef, phase, count, handsVisible, hint, cameraError } = useSignPractice();
+  const { videoRef, canvasRef, phase, count, handsVisible, hint, cameraError, stalled, resumeCamera } = useSignPractice();
 
   useEffect(() => {
     if (sense) setVariant(preferredVariant(sense, profile.region));
@@ -46,11 +48,21 @@ function Inner() {
       <div className="split">
         <div className="col" style={{ gap: 10 }}>
           <div className="vid" style={{ aspectRatio: "16 / 9", background: "#111" }}>
-            {id && (
+            {id && failedId === id && (
+              <div className="col" role="alert" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", gap: 8, color: "#fff", textAlign: "center", padding: 16 }}>
+                <WifiOff size={28} aria-hidden />
+                <span className="bb">Không tải được video. Cần có mạng để xem từ điển Bộ GD&ĐT.</span>
+                <button type="button" className="btn btn--tertiary btn--md" onClick={() => setFailedId(null)} style={{ minHeight: 44 }}>
+                  Thử lại
+                </button>
+              </div>
+            )}
+            {id && failedId !== id && (
               <video
                 key={id}
                 ref={demo}
                 src={videoUrl(id)}
+                onError={() => setFailedId(id)}
                 autoPlay
                 loop
                 muted
@@ -82,7 +94,7 @@ function Inner() {
             </div>
           )}
         </div>
-        <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} />
+        <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={phase} count={count} handsVisible={handsVisible} hint={hint} error={!!cameraError} stalled={stalled} onResume={resumeCamera} />
       </div>
 
       {cameraError && <CameraError note="Bạn vẫn xem được video mẫu." />}

@@ -23,7 +23,7 @@ import SaveBtn from "@/components/SaveBtn";
 import { Bar, Btn, IconBtn, IconCircle, Pill, Ring, Segmented } from "@/components/ui";
 
 function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: () => void }) {
-  const { videoRef, canvasRef, handsVisible, hint, cameraError } = useSignPractice(MODEL_URL, LABELS_URL, WORD_FEATURES);
+  const { videoRef, canvasRef, handsVisible, hint, cameraError, stalled, resumeCamera } = useSignPractice(MODEL_URL, LABELS_URL, WORD_FEATURES);
   const slow = typeof window !== "undefined" ? loadProfile().slowVideo : false;
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const recordedUrlRef = useRef<string | null>(null);
@@ -42,10 +42,20 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
 
   useEffect(() => {
     return () => {
-      cleanupRecordedUrl();
       if (recordTimeoutRef.current) clearTimeout(recordTimeoutRef.current);
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.stop();
+      const mr = mediaRecorderRef.current;
+      if (mr) {
+        // Tháo handler TRƯỚC khi stop: onstop chạy bất đồng bộ sau khi đã unmount,
+        // sẽ tạo Blob URL không ai revoke và setState trên component đã chết.
+        mr.ondataavailable = null;
+        mr.onstop = null;
+        if (mr.state !== "inactive") mr.stop();
+        mediaRecorderRef.current = null;
+      }
+      chunksRef.current = [];
+      if (recordedUrlRef.current) {
+        URL.revokeObjectURL(recordedUrlRef.current);
+        recordedUrlRef.current = null;
       }
     };
   }, []);
@@ -145,6 +155,8 @@ function MirrorPractice({ word, onGoPractice }: { word: string; onGoPractice: ()
               handsVisible={handsVisible}
               hint={hint}
               error={!!cameraError}
+              stalled={stalled}
+              onResume={resumeCamera}
             />
           )}
         </div>
@@ -337,7 +349,7 @@ function PracticeInner() {
                 <span style={{ fontSize: 22 }}>👋</span>
                 <span className="bb" style={{ fontSize: 13, color: "var(--acc)" }}>Vẫy tay bắt đầu</span>
                 <span className="sm" style={{ fontSize: 12, color: "var(--txt2)", lineHeight: 1.3 }}>
-                  Giơ bàn tay xòe trước camera để máy tự đếm nhịp quay.
+                  Vẫy bàn tay xoè qua lại trước camera để máy tự đếm nhịp quay.
                 </span>
               </div>
               <div className="col" style={{ gap: 4, background: "var(--canvas)", padding: "10px 12px", borderRadius: 14 }}>

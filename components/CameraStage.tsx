@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject, type ReactNode } from "react";
-import { Hand, ScanFace, CameraOff, MoveHorizontal, ZoomOut, ZoomIn } from "lucide-react";
+import { Hand, ScanFace, CameraOff, MoveHorizontal, ZoomOut, ZoomIn, RotateCcw } from "lucide-react";
 import type { Hint, Phase } from "@/lib/useSignPractice";
 import { Pill } from "./ui";
 
@@ -16,6 +16,8 @@ export default function CameraStage({
   corner,
   error,
   hint = "none",
+  stalled,
+  onResume,
 }: {
   videoRef: RefObject<HTMLVideoElement>;
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -27,6 +29,9 @@ export default function CameraStage({
   corner?: ReactNode;
   error?: boolean;
   hint?: Hint;
+  /** Camera đứng hình (bị hệ điều hành ngắt, vd. có cuộc gọi đến) */
+  stalled?: boolean;
+  onResume?: () => void;
 }) {
   // Khung theo đúng tỉ lệ camera: webcam laptop ngang 4:3, điện thoại dọc → không bị cắt mất tay
   const [ratio, setRatio] = useState<string | undefined>();
@@ -60,8 +65,22 @@ export default function CameraStage({
             Camera chưa được bật
           </span>
         </div>
+      ) : phase === "loading" ? (
+        <div className="cam-veil">Đang mở camera…</div>
       ) : (
-        phase === "loading" && <div className="cam-veil">Đang mở camera…</div>
+        stalled && (
+          <div className="cam-veil" role="alert">
+            <span className="col" style={{ alignItems: "center", gap: 12, textAlign: "center" }}>
+              <CameraOff size={40} aria-hidden />
+              Camera bị gián đoạn
+              {onResume && (
+                <button type="button" className="btn btn--secondary btn--md" onClick={onResume} style={{ minHeight: 44 }}>
+                  <RotateCcw size={18} aria-hidden /> Mở lại camera
+                </button>
+              )}
+            </span>
+          </div>
+        )
       )}
       {phase === "countdown" && (
         <div className="cam-count" aria-live="assertive">

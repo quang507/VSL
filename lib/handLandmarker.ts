@@ -14,7 +14,12 @@ import type { Pt, HandResult } from "./landmarks";
 let landmarker: HandLandmarker | null = null;
 let faceDetector: FaceDetector | null = null;
 let visionP: ReturnType<typeof FilesetResolver.forVisionTasks> | null = null;
-const getVision = () => (visionP ??= FilesetResolver.forVisionTasks(asset("/mediapipe/wasm")));
+// Tải WASM lỗi (mạng rớt) thì bỏ promise đã hỏng để lần sau thử lại, không phải tải lại trang
+const getVision = () =>
+  (visionP ??= FilesetResolver.forVisionTasks(asset("/mediapipe/wasm")).catch((e) => {
+    visionP = null;
+    throw e;
+  }));
 
 /** Bộ dò mặt (BlazeFace tầm gần, 230 KB): chỉ cần khung mặt làm mốc cho vị trí tay. */
 export async function getFaceDetector(): Promise<FaceDetector> {
@@ -104,15 +109,14 @@ export function detectHands(
     const out: HandResult[] = [];
     if (res.landmarks && res.handedness) {
       for (let i = 0; i < res.landmarks.length; i++) {
-        const handed = res.handedness[i][0]?.categoryName as
-          | "Left"
-          | "Right";
+        const cat = res.handedness[i][0];
+        const handed = cat?.categoryName as "Left" | "Right";
         const points: Pt[] = res.landmarks[i].map((p) => ({
           x: p.x,
           y: p.y,
           z: p.z,
         }));
-        out.push({ label: handed, points });
+        out.push({ label: handed, score: cat?.score ?? 0, points });
       }
     }
     return out;

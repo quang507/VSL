@@ -139,6 +139,8 @@ export default function Dictionary() {
   const [trainerScore, setTrainerScore] = useState(0);
   const [trainerStreak, setTrainerStreak] = useState(0);
   const [trainerFeedback, setTrainerFeedback] = useState<"ok" | "no" | null>(null);
+  // Video chữ cái lấy từ server Bộ GD&ĐT: mạng rớt / server lỗi thì báo rõ thay vì ô đen
+  const [failedVid, setFailedVid] = useState<string | null>(null);
 
   // Word Fingerspelling State
   const [wordTarget, setWordTarget] = useState<string>("");
@@ -693,8 +695,19 @@ export default function Dictionary() {
                             const sense = curTarget.s[0];
                             const vKey = preferredVariant(sense, profile.region);
                             const vidId = sense.v[vKey as keyof typeof sense.v];
+                            if (vidId && failedVid === vidId)
+                              return (
+                                <div className="col" role="alert" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", gap: 8, color: "#fff", textAlign: "center", padding: 12 }}>
+                                  <WifiOff size={24} aria-hidden />
+                                  <span className="bb">Không tải được video. Cần có mạng để xem từ điển Bộ GD&ĐT.</span>
+                                  <button type="button" className="btn btn--tertiary btn--md" onClick={() => setFailedVid(null)} style={{ minHeight: 44 }}>
+                                    <RotateCcw size={16} aria-hidden /> Thử lại
+                                  </button>
+                                </div>
+                              );
                             return vidId ? (
                               <video
+                                onError={() => setFailedVid(vidId)}
                                 key={`${vidId}-${wordCharIndex}`}
                                 src={videoUrl(vidId)}
                                 autoPlay

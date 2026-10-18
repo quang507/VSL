@@ -34,7 +34,7 @@ export default function Translate() {
       .catch(() => setHasPhrases(false));
   }, []);
 
-  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, cameraError, paused, setPaused } = useContinuousSign(
+  const { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, cameraError, stalled, resumeCamera, paused, setPaused } = useContinuousSign(
     mode === "word" ? MODEL_URL : PHRASE_MODEL,
     mode === "word" ? LABELS_URL : PHRASE_LABELS,
     (top) => {
@@ -103,7 +103,7 @@ export default function Translate() {
         ]}
       />
 
-      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={status === "loading" ? "loading" : "ready"} count={0} handsVisible={handsVisible} hint={mode === "word" && WORD_FEATURES === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} />
+      <CameraStage videoRef={videoRef} canvasRef={canvasRef} phase={status === "loading" ? "loading" : "ready"} count={0} handsVisible={handsVisible} hint={mode === "word" && WORD_FEATURES === "face" && !faceSeen && status !== "loading" ? "noface" : hint} error={!!cameraError} stalled={stalled} onResume={resumeCamera} />
       <div className="row" style={{ justifyContent: "center" }}>
         {statusPill}
       </div>

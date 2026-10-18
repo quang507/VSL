@@ -11,12 +11,14 @@ import { FEATURES_PER_FRAME_FACE } from "../../lib/constants";
  */
 interface Ref {
   video: string;
-  hands: { label: "Left" | "Right"; points: number[][] }[][];
+  /** Đúng thứ MediaPipe trả cho app: nhãn gốc (có thể hai tay CÙNG nhãn) + điểm tin cậy */
+  hands: { label: "Left" | "Right"; score?: number; points: number[][] }[][];
   face: number[][]; // [cx, cy, w, h] mỗi frame, 0 nếu không thấy
   features: number[][];
 }
 const refs: Ref[] = JSON.parse(readFileSync("tests/e2e/fixtures/face_features.json", "utf8"));
-const toHands = (hs: Ref["hands"][number]): HandResult[] => hs.map((h) => ({ label: h.label, points: h.points.map(([x, y, z]) => ({ x, y, z })) }));
+const toHands = (hs: Ref["hands"][number]): HandResult[] =>
+  hs.map((h) => ({ label: h.label, score: h.score, points: h.points.map(([x, y, z]) => ({ x, y, z })) }));
 
 for (const r of refs) {
   test(`đặc trưng face khớp Python · ${r.video}`, () => {
@@ -35,6 +37,15 @@ for (const r of refs) {
     expect(maxDiff).toBeLessThan(1e-4);
   });
 }
+
+test("hai tay cùng nhãn: không tay nào bị ghi đè, tay kém chắc sang ô còn lại", () => {
+  const two = refs.flatMap((r) => r.hands).find((h) => h.length === 2)!;
+  const [a, b] = toHands(two);
+  const normal = buildFrameFeatures([a, b], 1, null);
+  // Giả lập MediaPipe nhầm: cả hai cùng nhãn của a, b kém chắc hơn
+  const f = buildFrameFeatures([{ ...a, score: 0.9 }, { ...b, label: a.label, score: 0.6 }], 1, null);
+  expect(Array.from(f)).toEqual(Array.from(normal));
+});
 
 test("không có mặt: phần vị trí toàn 0, hình dạng tay vẫn có", () => {
   const hands = toHands(refs[0].hands.find((h) => h.length > 0)!);

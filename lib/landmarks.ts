@@ -21,6 +21,17 @@ export interface Pt {
 export interface HandResult {
   label: "Left" | "Right";
   points: Pt[]; // 21 điểm
+  /** Độ tin cậy của nhãn Left/Right (MediaPipe handedness), 0..1 */
+  score?: number;
+}
+
+// MediaPipe đôi khi gán CÙNG nhãn cho cả hai tay (tay bắt chéo, chồng nhau) → tay sau ghi đè
+// tay trước vào cùng một ô, mất hẳn một bàn tay. Giữ nhãn của tay chắc hơn, chuyển tay kia
+// sang ô còn lại. (Lúc train training/landmark_utils.py vẫn ghi đè; frame trùng nhãn hiếm.)
+function resolveSameLabel(hands: HandResult[]): HandResult[] {
+  if (hands.length !== 2 || hands[0].label !== hands[1].label) return hands;
+  const [hi, lo] = (hands[0].score ?? 0) >= (hands[1].score ?? 0) ? [hands[0], hands[1]] : [hands[1], hands[0]];
+  return [hi, { ...lo, label: hi.label === "Left" ? "Right" : "Left" }];
 }
 
 // (21 điểm) -> Float32Array(63) đã chuẩn hoá.
@@ -60,7 +71,7 @@ export function buildFrameFeatures(hands: HandResult[], aspect = 1, face?: FaceR
   const frame = new Float32Array(withFace ? FEATURES_PER_FRAME_FACE : FEATURES_PER_FRAME); // mặc định toàn 0
   const slot: Record<string, number> = { Left: 0, Right: 1 };
   const wrists: (readonly [number, number] | undefined)[] = [undefined, undefined];
-  for (const h of hands) {
+  for (const h of resolveSameLabel(hands)) {
     const idx = slot[h.label];
     if (idx === undefined) continue;
     frame.set(normalizeHand(h.points, aspect), idx * fh);

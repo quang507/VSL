@@ -70,7 +70,9 @@ def load(data):
     labels = json.load(open(os.path.join(data, "labels.json"), encoding="utf-8"))
     app = json.load(open("public/labels.json", encoding="utf-8")); idx = {nfc(l): i for i, l in enumerate(app)}
     y = np.array([idx[nfc(labels[c])] for c in z["y"]])
-    return dict(hands=vid("hands"), pose=vid("pose"), face=vid("face"), aspect=z["aspect"], lens=z["lens"], names=z["names"], y=y, nc=len(app), **{k: sp[k] for k in sp.files})
+    # hlab/hscore: nhãn gốc MediaPipe + điểm tin cậy từng ô (chỉ có ở rich.npz trích từ 10/2026 trở đi)
+    raw = {k: vid(k) for k in ("hlab", "hscore") if k in z.files}
+    return dict(hands=vid("hands"), pose=vid("pose"), face=vid("face"), aspect=z["aspect"], lens=z["lens"], names=z["names"], y=y, nc=len(app), **raw, **{k: sp[k] for k in sp.files})
 
 
 # ---------------- đặc trưng ----------------

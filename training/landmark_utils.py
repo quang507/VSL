@@ -29,14 +29,26 @@ def normalize_hand(points: np.ndarray) -> np.ndarray:
     return pts.reshape(-1)  # (63,)
 
 
+def resolve_same_label(hands: list) -> list:
+    """Hai tay CÙNG nhãn (tay bắt chéo / chồng nhau): giữ nhãn của tay có "score" cao hơn,
+    chuyển tay kia sang ô còn lại thay vì để nó ghi đè. Bản sao của eval/hand_slots.py,
+    PHẢI khớp y hệt resolveSameLabel trong lib/landmarks.ts."""
+    if len(hands) != 2 or hands[0]["label"] != hands[1]["label"]:
+        return hands
+    a, b = hands
+    hi, lo = (a, b) if (a.get("score") or 0) >= (b.get("score") or 0) else (b, a)
+    other = {"Left": "Right", "Right": "Left"}.get(hi["label"], lo["label"])
+    return [hi, {**lo, "label": other}]
+
+
 def build_frame_features(hands: list) -> np.ndarray:
     """
-    hands: danh sách dict {"label": "Left"/"Right", "points": (21,3)}
+    hands: danh sách dict {"label": "Left"/"Right", "score": float (tuỳ chọn), "points": (21,3)}
     Trả về vector (FEATURES_PER_FRAME,) = [Left(63), Right(63)].
     """
     frame = np.zeros(FEATURES_PER_FRAME, dtype=np.float32)
     slot = {"Left": 0, "Right": 1}
-    for h in hands:
+    for h in resolve_same_label(hands):
         idx = slot.get(h["label"])
         if idx is None:
             continue

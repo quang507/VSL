@@ -2,7 +2,8 @@
 
 // Nhận diện LIÊN TỤC cho chế độ "Dịch ký hiệu": camera chạy suốt, tự tách từng lần ký.
 // Một lần ký kết thúc khi: hạ tay khỏi khung, hoặc tay đứng yên ~0,5s, hoặc quá 3,5s (xem signSegmenter.ts).
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { cameraErrorText, openCamera, STALL_MS, type CameraHandle } from "./camera";
 import { getHandLandmarker, detectHands, getFaceDetector, detectFace } from "./handLandmarker";
 import { createFaceTracker } from "./faceTracker";
 import type { FeatureKind } from "./constants";
@@ -44,10 +45,19 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
       .catch(() => modelRef.current === modelUrl && setModelFailed(true));
   }, [modelUrl, labelsUrl]);
 
+  const camRef = useRef<CameraHandle | null>(null);
+  const [stalled, setStalled] = useState(false);
+
   useEffect(() => {
-    let stream: MediaStream | null = null;
     let cancelled = false;
     let raf = 0;
+    let lastAdvance = 0;
+    let isStalled = false;
+    const cam = openCamera({
+      onError: (e) => !cancelled && setCameraError(cameraErrorText(e)),
+      onReopen: () => !cancelled && setCameraError(""),
+    });
+    camRef.current = cam;
     const segmenter = createSegmenter();
     const faces = createFaceTracker();
     let lastVideoTime = -1;
@@ -81,31 +91,29 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
 
     (async () => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: false });
-        if (cancelled) {
-          s.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        stream = s;
+        await cam.ready;
+        if (cancelled) return;
         const hl = await getHandLandmarker();
         const fd = await getFaceDetector();
         if (cancelled) return;
         const loop = () => {
           const v = videoRef.current;
+          const stream = cam.current();
           if (v && stream && v.srcObject !== stream) {
             v.srcObject = stream;
             v.play().catch(() => {});
           }
           const canvas = canvasRef.current;
           const ctx = canvas?.getContext("2d") ?? null;
+          const now = performance.now();
           // Chỉ xử lý khi camera có frame MỚI (màn 60–120 Hz gọi loop nhiều hơn số frame camera)
           if (v && v.readyState >= 2 && v.currentTime !== lastVideoTime) {
             lastVideoTime = v.currentTime;
+            lastAdvance = now;
             if (canvas && v.videoWidth && canvas.width !== v.videoWidth) {
               canvas.width = v.videoWidth;
               canvas.height = v.videoHeight;
             }
-            const now = performance.now();
             const hands = detectHands(hl, v, now);
             if (ctx && canvas) drawHands(ctx, hands, canvas.width, canvas.height);
             const withFace = featRef.current === "face";
@@ -133,15 +141,24 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
               if (core) void classify(core);
               else setS(segmenter.active ? "watching" : "idle");
             }
+          } else if (!stream || !v) {
+            // đang ở nền / đang mở lại camera / khung camera đang ẩn: không tính là đứng hình
+            lastAdvance = now;
+            segmenter.reset(); // không ghép nửa động tác trước và sau lúc camera bị ngắt
+          }
+          const s = now - lastAdvance > STALL_MS;
+          if (s !== isStalled) {
+            isStalled = s;
+            setStalled(s);
+            if (s) v?.play().catch(() => {}); // iOS đôi khi chỉ dừng thẻ <video> chứ luồng vẫn sống
           }
           raf = requestAnimationFrame(loop);
         };
+        lastAdvance = performance.now();
         raf = requestAnimationFrame(loop);
         setS("idle");
       } catch (e: unknown) {
-        if (!cancelled) {
-          setCameraError(e instanceof Error ? e.message : "Không truy cập được camera.");
-        }
+        if (!cancelled) setCameraError(cameraErrorText(e));
       }
     })();
 
@@ -152,9 +169,16 @@ export function useContinuousSign(modelUrl: string, labelsUrl: string, onResult:
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-      stream?.getTracks().forEach((t) => t.stop());
+      cam.dispose();
+      camRef.current = null;
     };
   }, [features]);
 
-  return { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, paused, setPaused };
+  /** Camera đứng hình (bị hệ điều hành ngắt) → người dùng chạm để mở lại */
+  const resumeCamera = useCallback(() => {
+    setStalled(false);
+    void camRef.current?.reopen();
+  }, []);
+
+  return { videoRef, canvasRef, status, handsVisible, hint, faceSeen, modelReady, modelFailed, cameraError, stalled, resumeCamera, paused, setPaused };
 }

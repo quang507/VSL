@@ -18,7 +18,8 @@ export interface Progress {
   days: Record<string, number>; // "YYYY-MM-DD" -> số lần đúng trong ngày
   dailyGoal: number; // mục tiêu số từ đúng mỗi ngày
   soundOn: boolean; // bật âm thanh + rung
-  streakFreeze?: number; // khiên bảo vệ chuỗi ngày học (mặc định tặng 2 khiên)
+  streakFreeze?: number; // khiên bảo vệ chuỗi ngày học CÒN LẠI (mặc định tặng 2 khiên)
+  freezeDays?: string[]; // các ngày "YYYY-MM-DD" đã được khiên che (mỗi ngày tốn 1 khiên)
 }
 
 export function emptyProgress(): Progress {
@@ -39,7 +40,11 @@ export function loadProgress(): Progress {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptyProgress();
-    return { ...emptyProgress(), ...JSON.parse(raw) };
+    const p: Progress = { ...emptyProgress(), ...JSON.parse(raw) };
+    // Hụt ngày học: tiêu khiên ngay khi mở app để giữ chuỗi (chỉ làm một lần cho mỗi ngày hụt)
+    const settled = settleStreakFreeze(p);
+    if (settled) save(settled);
+    return settled ?? p;
   } catch {
     return emptyProgress();
   }
@@ -115,38 +120,41 @@ export function todayCount(p: Progress): number {
   return p.days[dayKey()] ?? 0;
 }
 
+// ---- Khiên bảo vệ chuỗi (Streak Freeze) ----
+// Trước đây dayStreak cho "mượn" 2 khiên ảo mỗi lần tính mà không bao giờ trừ → ai cũng được
+// bỏ 2 ngày bất kỳ miễn phí, số khiên hiển thị mãi là 2. Giờ khiên là thứ TIÊU HAO thật:
+// mỗi ngày hụt được che sẽ ghi vào freezeDays và trừ 1 khiên.
+const met = (p: Progress, d: string) => (p.days[d] ?? 0) >= p.dailyGoal;
+const frozen = (p: Progress, d: string) => !!p.freezeDays?.includes(d);
+
+/**
+ * Che các ngày hụt NGAY TRƯỚC hôm nay bằng khiên, nếu đủ khiên để nối liền chuỗi cũ.
+ * Hụt nhiều ngày hơn số khiên → chuỗi đứt hẳn, KHÔNG phí khiên. Hôm nay chưa xét (còn đang học).
+ * Trả về tiến độ mới nếu có tiêu khiên, ngược lại null.
+ */
+export function settleStreakFreeze(p: Progress, today = dayKey()): Progress | null {
+  const left = p.streakFreeze ?? 2;
+  if (left <= 0) return null;
+  const gap: string[] = [];
+  let d = addDays(today, -1);
+  while (!met(p, d) && !frozen(p, d)) {
+    gap.push(d);
+    if (gap.length > left) return null; // không đủ khiên (hoặc chưa từng học): để chuỗi đứt
+    d = addDays(d, -1);
+  }
+  if (!gap.length) return null; // hôm qua đã học / đã được che
+  return { ...p, streakFreeze: left - gap.length, freezeDays: [...(p.freezeDays ?? []), ...gap] };
+}
+
 // Số ngày liên tiếp đạt mục tiêu (tính lùi từ hôm nay; nếu hôm nay chưa
 // đạt thì tính lùi từ hôm qua để streak chưa bị mất trong ngày).
-// Có tích hợp khiên bảo vệ (Streak Freeze): nếu hụt 1 ngày, khiên sẽ tự kích hoạt bảo toàn chuỗi.
-export function dayStreak(p: Progress): number {
-  const goal = p.dailyGoal;
-  let cursor = dayKey();
-  const todayMet = (p.days[cursor] ?? 0) >= goal;
-  let n = 0;
-  let freezeUsed = 0;
-  const availableFreeze = p.streakFreeze ?? 2;
-
-  // Nếu hôm nay đã đạt: tính 1 ngày cho hôm nay và lùi về hôm qua
-  if (todayMet) {
-    n = 1;
+// Ngày được khiên che giữ cho chuỗi không đứt nhưng không cộng thêm ngày.
+export function dayStreak(p: Progress, today = dayKey()): number {
+  let n = met(p, today) ? 1 : 0;
+  let cursor = addDays(today, -1);
+  while (met(p, cursor) || frozen(p, cursor)) {
+    if (met(p, cursor)) n += 1;
     cursor = addDays(cursor, -1);
-  } else {
-    // Chưa học hôm nay: bắt đầu xét từ hôm qua để chưa mất chuỗi trong ngày
-    cursor = addDays(cursor, -1);
-  }
-
-  while (true) {
-    const met = (p.days[cursor] ?? 0) >= goal;
-    if (met) {
-      n += 1;
-      cursor = addDays(cursor, -1);
-    } else if (freezeUsed < availableFreeze) {
-      // Ngày này hụt: dùng 1 khiên để giữ chuỗi và tiếp tục lùi xem có streak trước đó không
-      freezeUsed += 1;
-      cursor = addDays(cursor, -1);
-    } else {
-      break;
-    }
   }
   return n;
 }

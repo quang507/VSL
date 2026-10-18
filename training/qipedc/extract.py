@@ -42,7 +42,7 @@ def _extract(job):
                         fr = cv2.resize(fr, (WIDTH, round(h * WIDTH / w)), interpolation=cv2.INTER_AREA)
                     img = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB)))
                     res = E._LM.detect(img)
-                    hl = [{"label": hd[0].category_name, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)}
+                    hl = [{"label": hd[0].category_name, "score": hd[0].score, "points": np.array([[q.x, q.y, q.z] for q in lms], dtype=np.float32)}
                           for lms, hd in zip(res.hand_landmarks, res.handedness)]
                     if hl:
                         frames.append(E.build_frame(hl))
