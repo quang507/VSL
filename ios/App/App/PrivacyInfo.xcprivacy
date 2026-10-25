@@ -11,6 +11,17 @@
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>
-	<array/>
+	<array>
+		<!-- Capacitor core + WebView lưu cài đặt qua UserDefaults → khai lý do CA92.1 (App functionality).
+		     Bắt buộc từ 5/2024, nếu thiếu Apple gửi cảnh báo ITMS-91053 khi upload. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
