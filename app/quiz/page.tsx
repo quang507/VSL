@@ -9,7 +9,7 @@ import SignCapture from "@/components/SignCapture";
 import LoopVideo from "@/components/LoopVideo";
 import { useAutoAdvance } from "@/lib/useAutoAdvance";
 import { useLabels } from "@/lib/useLabels";
-import { recordAttempt, loadProgress, dueWords } from "@/lib/progress";
+import { recordAttempt, loadProgress, dueWords, recordCheckpoint } from "@/lib/progress";
 import { signal, fireConfetti } from "@/lib/feedback";
 import { loadProfile } from "@/lib/profile";
 import type { Prediction } from "@/lib/classifier";
@@ -127,6 +127,14 @@ function QuizInner() {
     : selectedChoice === target;
   const auto = typeof window !== "undefined" ? loadProfile().autoSign : true;
   const adv = useAutoAdvance(auto && graded && correct && !finished, () => next());
+
+  // R2 · Vượt chặng: đạt ≥80% thì ghi lại để mở khóa chặng kế trên bản đồ (bền qua tắt app đột ngột)
+  useEffect(() => {
+    if (finished && checkpoint && deck.length > 0) {
+      const pct = Math.round((score / deck.length) * 100);
+      if (pct >= 80) recordCheckpoint(checkpoint);
+    }
+  }, [finished, checkpoint, score, deck.length]);
 
   // Xử lý mini-game ghép cặp (Matching Pairs)
   const handleSelectText = (word: string) => {

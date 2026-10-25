@@ -20,6 +20,8 @@ export interface Progress {
   soundOn: boolean; // bật âm thanh + rung
   streakFreeze?: number; // khiên bảo vệ chuỗi ngày học CÒN LẠI (mặc định tặng 2 khiên)
   freezeDays?: string[]; // các ngày "YYYY-MM-DD" đã được khiên che (mỗi ngày tốn 1 khiên)
+  passedCheckpoints?: string[]; // id các chặng đã vượt bài thi Checkpoint (≥80%) → mở khóa chặng kế
+  claimedChests?: string[]; // id các rương báu đã nhận thưởng (không nhận lại được)
 }
 
 export function emptyProgress(): Progress {
@@ -32,6 +34,8 @@ export function emptyProgress(): Progress {
     dailyGoal: 5,
     soundOn: true,
     streakFreeze: 2,
+    passedCheckpoints: [],
+    claimedChests: [],
   };
 }
 
@@ -233,4 +237,42 @@ export function setSoundOn(on: boolean): Progress {
 
 export function resetProgress() {
   save(emptyProgress());
+}
+
+// ---- Trạm kiểm soát vượt chặng (Unit Checkpoint Exam) ----
+export function isCheckpointPassed(p: Progress, lessonId: string): boolean {
+  return !!p.passedCheckpoints?.includes(lessonId);
+}
+
+/** Ghi nhận đã vượt Checkpoint của một chặng (đạt ≥80%). Gọi nhiều lần không nhân đôi. */
+export function recordCheckpoint(lessonId: string): Progress {
+  const p = loadProgress();
+  if (!p.passedCheckpoints?.includes(lessonId)) {
+    p.passedCheckpoints = [...(p.passedCheckpoints ?? []), lessonId];
+    save(p);
+  }
+  return p;
+}
+
+/** Chặng mở khóa khi đã vượt Checkpoint của chặng ngay trước (chặng đầu luôn mở). */
+export function isLessonUnlocked(p: Progress, lessons: { id: string }[], index: number): boolean {
+  if (index <= 0) return true;
+  const prev = lessons[index - 1];
+  return !!prev && isCheckpointPassed(p, prev.id);
+}
+
+// ---- Rương báu cột mốc (Treasure Chest Milestone) ----
+export function isChestClaimed(p: Progress, chestId: string): boolean {
+  return !!p.claimedChests?.includes(chestId);
+}
+
+/** Nhận thưởng rương (1 lần/rương): +20 XP và +1 khiên bảo vệ chuỗi. */
+export function claimChest(chestId: string): Progress {
+  const p = loadProgress();
+  if (p.claimedChests?.includes(chestId)) return p;
+  p.claimedChests = [...(p.claimedChests ?? []), chestId];
+  p.score += 20;
+  p.streakFreeze = (p.streakFreeze ?? 2) + 1;
+  save(p);
+  return p;
 }

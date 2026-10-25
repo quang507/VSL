@@ -12,7 +12,8 @@ import { buildLessons } from "@/lib/lessons";
 import { useLabels } from "@/lib/useLabels";
 import { useProgress } from "@/lib/useProgress";
 import { useProfile } from "@/lib/profile";
-import { countLearned, dayStreak, isLearned, todayCount, dueWords } from "@/lib/progress";
+import { countLearned, dayStreak, isLearned, todayCount, dueWords, isCheckpointPassed, isLessonUnlocked, isChestClaimed, claimChest } from "@/lib/progress";
+import { fireConfetti, signal } from "@/lib/feedback";
 import { lessonUrl, practiceUrl } from "@/lib/nav";
 import { thumbUrl } from "@/lib/theme";
 
@@ -26,7 +27,7 @@ export default function Home() {
   const router = useRouter();
   const { profile, ready } = useProfile();
   const { labels, loading } = useLabels();
-  const [progress] = useProgress();
+  const [progress, setProgress] = useProgress();
 
   useEffect(() => {
     if (ready && !profile.onboarded) router.replace("/chao-mung");
@@ -38,12 +39,16 @@ export default function Home() {
   const goal = progress.dailyGoal;
   const learned = (w: string) => isLearned(progress, w);
 
-  // Chặng đang học = chặng đầu tiên chưa thuộc hết; bài hiện tại = từ đầu tiên chưa thuộc
-  const current = lessons.find((l) => countLearned(progress, l.words) < l.words.length) ?? lessons[0];
+  // Chặng đang học = chặng đầu tiên chưa thuộc hết HOẶC chưa vượt Checkpoint (để nhắc người học thi vượt chặng).
+  const current =
+    lessons.find((l) => countLearned(progress, l.words) < l.words.length || !isCheckpointPassed(progress, l.id)) ??
+    lessons[lessons.length - 1];
   const stageIdx = current ? lessons.indexOf(current) : 0;
   const curWordIdx = current ? Math.max(0, current.words.findIndex((w) => !learned(w))) : 0;
   const nextWord = current?.words[curWordIdx];
   const done = current ? countLearned(progress, current.words) : 0;
+  const stageComplete = !!current && done >= current.words.length;
+  const stagePassed = !!current && isCheckpointPassed(progress, current.id);
 
   return (
     <main className="app app--nav" style={{ gap: 24 }}>
@@ -118,7 +123,7 @@ export default function Home() {
       })()}
 
       {/* Tiếp tục học */}
-      {current && nextWord && (
+      {current && nextWord && !stageComplete && (
         <section className="continue" aria-label="Tiếp tục học">
           <div className="col grow" style={{ gap: 8, minWidth: 0 }}>
             <span className="badge badge--s badge--acc">Bài {String(curWordIdx + 1).padStart(2, "0")}</span>
@@ -193,6 +198,9 @@ export default function Home() {
               const locked = !ok && i > curWordIdx;
               // Zigzag shift so le kiểu Lingvano: giữa -> lệch trái -> lệch phải
               const offset = i % 3 === 1 ? -42 : i % 3 === 2 ? 42 : 0;
+              // Rương báu sau mỗi 4 bài: id ổn định theo chặng để không nhận thưởng lại
+              const chestId = `${current.id}-chest-${Math.floor((i + 1) / 4)}`;
+              const chestClaimed = isChestClaimed(progress, chestId);
 
               return (
                 <div
@@ -293,28 +301,39 @@ export default function Home() {
                     >
                       <button
                         type="button"
+                        disabled={!ok || chestClaimed}
                         style={{
                           width: 64,
                           height: 64,
                           borderRadius: 20,
-                          background: ok ? "var(--yel)" : "var(--sunk)",
+                          background: !ok ? "var(--sunk)" : chestClaimed ? "var(--pos)" : "var(--yel)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           color: ok ? "var(--yel-txt)" : "var(--txt2)",
                           boxShadow: ok ? "0 8px 24px rgba(252, 207, 72, 0.45)" : "none",
                           border: "3px solid #fff",
-                          cursor: ok ? "pointer" : "default",
+                          cursor: ok && !chestClaimed ? "pointer" : "default",
                         }}
                         onClick={() => {
-                          if (ok) alert("🎉 Bạn đã mở rương báu! Nhận thêm 20 XP và 1 khiên bảo vệ chuỗi!");
+                          if (!ok || chestClaimed) return;
+                          const p = claimChest(chestId);
+                          setProgress(p);
+                          signal(true, { sound: p.soundOn, vibrate: profile.vibrate });
+                          fireConfetti();
                         }}
-                        aria-label={`Rương thưởng mốc ${Math.floor((i + 1) / 4)}`}
+                        aria-label={
+                          !ok
+                            ? `Rương thưởng mốc ${Math.floor((i + 1) / 4)} (chưa mở)`
+                            : chestClaimed
+                            ? `Rương thưởng mốc ${Math.floor((i + 1) / 4)} (đã nhận)`
+                            : `Mở rương thưởng mốc ${Math.floor((i + 1) / 4)}: +20 XP và 1 khiên`
+                        }
                       >
-                        <Gift size={28} aria-hidden />
+                        {chestClaimed ? <CheckCircle2 size={28} color="#fff" aria-hidden /> : <Gift size={28} aria-hidden />}
                       </button>
-                      <span className="sm num" style={{ fontSize: 11, fontWeight: 700, color: ok ? "var(--org-txt)" : "var(--txt2)" }}>
-                        {ok ? "Mở rương" : "Rương khóa"}
+                      <span className="sm num" style={{ fontSize: 11, fontWeight: 700, color: !ok ? "var(--txt2)" : chestClaimed ? "var(--grn-txt)" : "var(--org-txt)" }}>
+                        {!ok ? "Rương khóa" : chestClaimed ? "Đã nhận ✓" : "Mở rương"}
                       </span>
                     </div>
                   )}
@@ -340,7 +359,7 @@ export default function Home() {
                   width: 80,
                   height: 80,
                   borderRadius: "50%",
-                  background: done >= current.words.length ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #f59e0b, #d97706)",
+                  background: stagePassed ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #f59e0b, #d97706)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -355,10 +374,10 @@ export default function Home() {
               </Link>
               <div className="col col--tight" style={{ alignItems: "center" }}>
                 <span className="bb" style={{ fontSize: 14, color: "var(--txt)" }}>
-                  Thi vượt chặng
+                  {stagePassed ? "Đã vượt chặng" : "Thi vượt chặng"}
                 </span>
-                <span className="sm num" style={{ color: "var(--org-txt)", fontWeight: 700 }}>
-                  Unit Checkpoint · Đạt 80%
+                <span className="sm num" style={{ color: stagePassed ? "var(--grn-txt)" : "var(--org-txt)", fontWeight: 700 }}>
+                  {stagePassed ? "Đã mở khóa chặng kế ✓" : stageComplete ? "Sẵn sàng · Đạt 80%" : "Unit Checkpoint · Đạt 80%"}
                 </span>
               </div>
             </div>
@@ -374,6 +393,26 @@ export default function Home() {
             if (l.id === current?.id) return null;
             const d = countLearned(progress, l.words);
             const complete = d === l.words.length;
+            const unlocked = isLessonUnlocked(progress, lessons, i);
+            // Chặng chưa mở khóa: phải vượt Checkpoint chặng ngay trước. Hiển thị khóa, không bấm được.
+            if (!unlocked) {
+              return (
+                <div key={l.id} className="lrow" style={{ opacity: 0.6, cursor: "not-allowed" }} aria-disabled="true" aria-label={`Chặng ${i + 1} · ${l.title} — chưa mở khóa, hãy vượt chặng ${i} trước`}>
+                  <span className="thumb" style={{ background: "var(--sunk)", color: "var(--txt2)", display: "flex", alignItems: "center", justifyContent: "center" }} aria-hidden>
+                    <Lock size={22} />
+                  </span>
+                  <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
+                    <span className="t-title">
+                      Chặng {i + 1} · {l.title}
+                    </span>
+                    <span className="t-sub" style={{ color: "var(--txt2)" }}>
+                      Vượt chặng {i} (đạt 80%) để mở khóa
+                    </span>
+                  </span>
+                  <Lock size={20} color="var(--txt3)" aria-hidden />
+                </div>
+              );
+            }
             return (
               <Link key={l.id} href={lessonUrl(l.id)} className="lrow">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
