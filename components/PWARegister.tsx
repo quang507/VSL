@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { asset } from "@/lib/base";
+import { requestPersistentStorage } from "@/lib/backup";
 
 // Đăng ký service worker + Xử lý Deep Linking cho App/PWA/Capacitor
 export default function PWARegister() {
@@ -11,6 +12,9 @@ export default function PWARegister() {
         /* bỏ qua nếu trình duyệt không hỗ trợ */
       });
     }
+
+    // Xin giữ bền storage để tiến độ/streak/điểm Checkpoint không bị dọn khi máy đầy hoặc theo ITP iOS
+    void requestPersistentStorage();
 
     // Xử lý deep link khi mở app từ scheme vslv:// hoặc link ngoài
     const handleUrl = (urlString: string) => {

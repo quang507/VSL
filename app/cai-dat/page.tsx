@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check, Sparkles, FlipHorizontal, Bell } from "lucide-react";
+import { MapPin, Vibrate, Zap, Volume2, Gauge, ShieldCheck, Trash2, Info, Check, Sparkles, FlipHorizontal, Bell, Download, Upload } from "lucide-react";
 import { Btn, Dialog, IconCircle, Segmented, Toggle, TopBar } from "@/components/ui";
 import { REGIONS, useProfile, resetProfile } from "@/lib/profile";
 import { useProgress } from "@/lib/useProgress";
 import { setDailyGoal, setSoundOn, resetProgress, loadProgress } from "@/lib/progress";
 import { canVibrate, signal } from "@/lib/feedback";
+import { downloadBackup, restoreBackup } from "@/lib/backup";
 
 function Row({ icon, bg, fg, title, sub, right }: { icon: typeof MapPin; bg: string; fg: string; title: string; sub?: string; right: React.ReactNode }) {
   return (
@@ -31,6 +32,8 @@ export default function Settings() {
   const [progress, setProgress] = useProgress();
   const [confirm, setConfirm] = useState(false);
   const [regionOpen, setRegionOpen] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const region = REGIONS.find((r) => r.id === profile.region);
 
   return (
@@ -154,6 +157,45 @@ export default function Settings() {
         <span className="bm" style={{ color: "var(--txt)" }}>
           Camera xử lý ngay trên máy. Video không được gửi đi đâu. Tiến độ chỉ lưu trên thiết bị này.
         </span>
+      </div>
+
+      <span className="bb muted">Sao lưu dữ liệu</span>
+      <div className="card card--list">
+        <Row
+          icon={Download}
+          bg="var(--brand-soft)"
+          fg="var(--blu-txt)"
+          title="Tải bản sao lưu"
+          sub="Lưu tiến độ, chuỗi ngày, điểm Checkpoint ra file .json — phòng khi máy dọn bộ nhớ"
+          right={<Btn size="sm" level="tertiary" onClick={downloadBackup} style={{ minHeight: 44 }}>Tải về</Btn>}
+        />
+        <Row
+          icon={Upload}
+          bg="var(--grn-soft)"
+          fg="var(--grn-txt)"
+          title="Khôi phục từ file"
+          sub={backupMsg ?? "Chọn file .json đã sao lưu trước đó"}
+          right={<Btn size="sm" level="tertiary" onClick={() => fileRef.current?.click()} style={{ minHeight: 44 }}>Chọn file</Btn>}
+        />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          style={{ display: "none" }}
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            try {
+              const n = restoreBackup(await f.text());
+              setProgress(loadProgress());
+              update({});
+              setBackupMsg(`Đã khôi phục ${n} mục dữ liệu`);
+            } catch {
+              setBackupMsg("File sao lưu không hợp lệ");
+            }
+          }}
+        />
       </div>
 
       <div className="card card--list">
