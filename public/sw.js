@@ -19,8 +19,12 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// App đóng gói native chạy ở localhost → bỏ qua hoàn toàn, tránh can thiệp việc phục vụ asset trong gói.
-const isNative = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
+// App đóng gói native → bỏ qua hoàn toàn, tránh can thiệp việc phục vụ asset trong gói.
+// Capacitor chạy ở localhost (scheme https trên Android, capacitor:// trên iOS) hoặc file:// → chặn cả hai lớp.
+const isNative =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1" ||
+  /^(capacitor|ionic|file)/.test(self.location.protocol);
 
 const STATIC_RE = /\/_next\/|\/samples\/|\/mediapipe\/|\/icons\/|\/img\/|\/fonts\/|\.(?:js|css|woff2?|png|jpg|jpeg|webp|svg|mp4|task|tflite|wasm)$/i;
 const FRESH_RE = /labels\.json|qipedc\.json|\/models\//i;

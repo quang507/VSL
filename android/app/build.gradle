@@ -5,6 +5,9 @@ def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+} else {
+    logger.warn("⚠️  android/keystore.properties KHONG tim thay -> ban release se ky bang khoa DEBUG. " +
+                "TUYET DOI khong nop ban nay len Google Play. Xem android/keystore.properties.example de tao khoa release.")
 }
 
 android {

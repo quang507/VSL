@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { asset } from "@/lib/base";
 import { requestPersistentStorage } from "@/lib/backup";
 
 // Đăng ký service worker + Xử lý Deep Linking cho App/PWA/Capacitor
 export default function PWARegister() {
   useEffect(() => {
-    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    // App đóng gói Capacitor (iOS/Android) phục vụ asset từ trong gói → KHÔNG đăng ký service worker
+    // (tránh mọi can thiệp của SW vào việc nạp asset native). SW chỉ dành cho bản Web/PWA.
+    if (!Capacitor.isNativePlatform() && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register(asset("/sw.js")).catch(() => {
         /* bỏ qua nếu trình duyệt không hỗ trợ */
       });

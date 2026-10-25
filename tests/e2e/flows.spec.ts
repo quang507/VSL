@@ -11,6 +11,8 @@ test("N1 · Onboarding: người mới đặt tên, vùng, mục tiêu rồi và
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: /Hà Nội/ }).click();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await page.getByRole("button", { name: /Mới bắt đầu/ }).click(); // bước khảo sát trình độ (5 bước)
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: /Nghiêm túc/ }).click();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: "Vào học" }).click();
@@ -62,10 +64,11 @@ test("N5 · Ôn tập: số từ đến hạn khớp giữa các màn", async ({
   await seedUser(page);
   await page.goto("/luyen-tap/");
   const hero = page.getByRole("region", { name: "Từ đến hạn ôn" });
-  await expect(hero.getByText("2", { exact: true })).toBeVisible();
+  // Seed có 3 từ đến hạn: Chào (quá hạn), Ho (quá hạn), Cảm ơn (box 1 < 2 nên luôn tới hạn ôn).
+  await expect(hero.getByText("3", { exact: true })).toBeVisible();
   await expect(hero.getByRole("link", { name: "Ôn ngay" })).toBeVisible();
   await page.goto("/tu-dien/");
-  await expect(page.getByText("2 từ cần ôn lại")).toBeVisible();
+  await expect(page.getByText("3 từ cần ôn lại")).toBeVisible();
 });
 
 test("N6 · Câu giao tiếp: 59 câu, câu chưa rõ nghĩa bị ẩn", async ({ page }) => {

@@ -139,6 +139,34 @@ export default function Home() {
         </section>
       )}
 
+      {/* Sẵn sàng vượt chặng: đã học hết từ nhưng chưa đạt Checkpoint → thay cho "Tiếp tục học" */}
+      {current && stageComplete && !stagePassed && (
+        <Link
+          href={`/quiz?checkpoint=${current.id}`}
+          className="card"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
+            padding: "16px 18px",
+            background: "linear-gradient(135deg, var(--yel-soft), var(--org-soft))",
+            borderColor: "transparent",
+            boxShadow: "var(--shadow-tile)",
+            textDecoration: "none",
+          }}
+          aria-label={`Sẵn sàng vượt chặng ${current.title}: thi đạt 80% để mở khóa chặng tiếp theo`}
+        >
+          <span style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--org)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flex: "none" }} aria-hidden>
+            <ShieldCheck size={26} />
+          </span>
+          <span className="col col--tight grow" style={{ minWidth: 0 }}>
+            <span className="bb" style={{ fontSize: 16, color: "var(--txt)" }}>Sẵn sàng vượt chặng!</span>
+            <span className="sm" style={{ color: "var(--txt2)" }}>Đã học hết từ trong chặng. Thi đạt ≥80% để mở khóa chặng tiếp theo.</span>
+          </span>
+          <ArrowRight size={22} color="var(--org-txt)" aria-hidden style={{ flex: "none" }} />
+        </Link>
+      )}
+
       {/* Mục tiêu hôm nay */}
       <section className="goal" aria-label="Mục tiêu hôm nay">
         <div className="goal-row">
@@ -230,6 +258,8 @@ export default function Home() {
                         border: "3px solid var(--surface)",
                       }}
                       title={`${w} (Chưa mở)`}
+                      role="img"
+                      aria-label={`Bài ${w} chưa mở`}
                     >
                       <Lock size={24} aria-hidden />
                     </div>
