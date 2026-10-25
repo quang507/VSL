@@ -141,14 +141,16 @@ function QuizInner() {
     if (matchedWords.includes(word)) return;
     if (selectedVideo) {
       if (selectedVideo === word) {
-        signal(true, { sound: true, vibrate: true });
+        const p = recordAttempt(word, true);
+        const prof = loadProfile();
+        signal(true, { sound: p.soundOn, vibrate: prof.vibrate });
         fireConfetti();
         setMatchedWords((prev) => [...prev, word]);
         setSelectedText(null);
         setSelectedVideo(null);
-        recordAttempt(word, true);
       } else {
-        signal(false, { sound: true, vibrate: true });
+        const prof = loadProfile();
+        signal(false, { sound: loadProgress().soundOn, vibrate: prof.vibrate });
         setMatchError(true);
         setTimeout(() => {
           setSelectedText(null);
@@ -165,14 +167,16 @@ function QuizInner() {
     if (matchedWords.includes(word)) return;
     if (selectedText) {
       if (selectedText === word) {
-        signal(true, { sound: true, vibrate: true });
+        const p = recordAttempt(word, true);
+        const prof = loadProfile();
+        signal(true, { sound: p.soundOn, vibrate: prof.vibrate });
         fireConfetti();
         setMatchedWords((prev) => [...prev, word]);
         setSelectedText(null);
         setSelectedVideo(null);
-        recordAttempt(word, true);
       } else {
-        signal(false, { sound: true, vibrate: true });
+        const prof = loadProfile();
+        signal(false, { sound: loadProgress().soundOn, vibrate: prof.vibrate });
         setMatchError(true);
         setTimeout(() => {
           setSelectedText(null);
