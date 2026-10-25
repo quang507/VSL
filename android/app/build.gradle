@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Đọc thông tin ký release từ android/keystore.properties (KHÔNG commit — xem keystore.properties.example)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "vn.vslv.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +23,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            // Ký bằng khóa release khi có android/keystore.properties; nếu chưa có (máy/CI chưa cấu hình
+            // khóa) thì lùi về khóa debug để build không vỡ — TUYỆT ĐỐI không dùng bản debug này nộp Play.
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
